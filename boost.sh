@@ -19,9 +19,9 @@
 # same directory as this script, and run "./boost.sh". Grab a cuppa. And voila.
 #===============================================================================
 
-: ${BOOST_VERSION:=1_44_0}
-: ${BOOST_LIBS:="thread signals filesystem regex program_options system"}
-: ${IPHONE_SDKVERSION:=4.3}
+: ${BOOST_VERSION:=1_48_0}
+: ${BOOST_LIBS:="thread date_time serialization iostreams signals filesystem regex program_options system python test"}
+: ${IPHONE_SDKVERSION:=5.0}
 : ${EXTRA_CPPFLAGS:="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS"}
 
 # The EXTRA_CPPFLAGS definition works around a thread race issue in
@@ -117,15 +117,15 @@ writeBjamUserConfig()
     # ONLY SEEMS TO WORK IN HOME DIR GRR
     echo Writing usr-config
     #mkdir -p $BUILDDIR
-    #cat > ~/user-config.jam <<EOF
-    cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
+    cat > ~/boost_iOS5_user-config.jam <<EOF
+    #cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
 using darwin : 4.2.1~iphone
-   : "${DEVELOPER}"/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -arch armv7 -mthumb -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
+   : "${DEVELOPER}"/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc -arch armv7 -mthumb -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
    : <striper>
    : <architecture>arm <target-os>iphone
    ;
 using darwin : 4.2.1~iphonesim
-   : "${DEVELOPER}"/Platforms/iPhoneSimulator.platform/Developer/usr/bin/gcc-4.2 -arch i386 -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
+   : "${DEVELOPER}"/Platforms/iPhoneSimulator.platform/Developer/usr/bin/gcc -arch i386 -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
    : <striper>
    : <architecture>x86 <target-os>iphone
    ;
@@ -158,14 +158,14 @@ bootstrapBoost()
 
 #===============================================================================
 
-buildBoostForiPhoneOS_1_44_0()
+buildBoostForiPhoneOS_1_48_0()
 {
     cd $BOOST_SRC
     threadCount=`hwprefs thread_count`
-    ./bjam --prefix="$PREFIXDIR" -j $threadCount toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static variant=${RELEASE} install
+    ./bjam --prefix="$PREFIXDIR" --user-confi=$HOME/boost_iOS5_user-confi.jam -j $threadCount toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static variant=${RELEASE} install
     doneSection
 
-    ./bjam -j $threadCount toolset=darwin architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static variant=${RELEASE} stage
+    ./bjam --user-confi=$HOME/boost_iOS5_user-confi.jam -j $threadCount toolset=darwin architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static variant=${RELEASE} stage
     doneSection
 }
 
@@ -331,7 +331,7 @@ EOF
 mkdir -p $BUILDDIR
 
 case $BOOST_VERSION in
-    1_44_0 )
+    1_48_0 )
         cleanFrameworks
         for build in release debug; do
             echo ""
@@ -344,7 +344,7 @@ case $BOOST_VERSION in
             inventMissingHeaders
             writeBjamUserConfig
             bootstrapBoost
-            buildBoostForiPhoneOS_1_44_0
+            buildBoostForiPhoneOS_1_48_0
             scrunchAllLibsTogetherInOneLibPerPlatform
             lipoAllBoostLibraries
             buildFramework
