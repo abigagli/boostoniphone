@@ -23,6 +23,7 @@
 : ${BOOST_LIBS:="thread date_time serialization iostreams signals filesystem regex program_options system python test"}
 : ${IPHONE_SDKVERSION:=5.0}
 : ${EXTRA_CPPFLAGS:="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS"}
+: ${THREAD_COUNT:=4}
 
 # The EXTRA_CPPFLAGS definition works around a thread race issue in
 # shared_ptr. I encountered this historically and have not verified that
@@ -59,6 +60,7 @@ echo "BUILDDIR:          $BUILDDIR"
 echo "PREFIXDIR:         $PREFIXDIR"
 echo "FRAMEWORKDIR:      $FRAMEWORKDIR"
 echo "IPHONE_SDKVERSION: $IPHONE_SDKVERSION"
+echo "THREAD_COUNT:      $THREAD_COUNT"
 echo
 
 #===============================================================================
@@ -94,8 +96,8 @@ cleanEverythingReadyToStart()
 {
     echo Cleaning everything before we start to build...
     #rm -rf $BOOST_SRC   A.B.:Let's keep the decompressed tarball around...
-    #rm -rf $BUILDDIR
-    #rm -rf $PREFIXDIR
+    rm -rf $BUILDDIR
+    rm -rf $PREFIXDIR
     doneSection
 }
 
@@ -118,8 +120,10 @@ writeBjamUserConfig()
     echo Writing usr-config
     #mkdir -p $BUILDDIR
     #cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
-    cat > ~/boost_iOS5_user-config.jam <<EOF
-using darwin : 4.6.2 : x86_64-apple-darwin11.2.0-g++ ;
+    cat > ~/boost_darwin_user-config.jam <<EOF
+using darwin : 4.6.2
+   : x86_64-apple-darwin11.2.0-g++
+   ;
 using darwin : 4.2.1~iphone
    : "${DEVELOPER}"/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc -arch armv7 -mthumb -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
    : <striper>
@@ -162,19 +166,21 @@ bootstrapBoost()
 buildBoostForiPhoneOS_1_48_0()
 {
     cd $BOOST_SRC
-    #threadCount=`hwprefs thread_count`
-    ./bjam --prefix="$PREFIXDIR" --user-config="$HOME/boost_iOS5_user-config.jam" toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static variant=${RELEASE} install
+# add --debug-configuration to check used configuration
+
+    ./bjam --prefix="$PREFIXDIR" --user-config="$HOME/boost_darwin_user-config.jam" -j $THREAD_COUNT toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static variant=${RELEASE} install
     doneSection
 
-    ./bjam --user-config="$HOME/boost_iOS5_user-config.jam" toolset=darwin architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static variant=${RELEASE} stage
+    ./bjam --user-config="$HOME/boost_darwin_user-config.jam" -j $THREAD_COUNT toolset=darwin architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static variant=${RELEASE} stage
     doneSection
 }
 
 buildBoostForOSX_1_48_0()
 {
     cd $BOOST_SRC
+# add --debug-configuration to check used configuration
 
-    ./bjam --prefix="$PREFIXDIR" --user-config="$HOME/boost_iOS5_user-config.jam" --exec-prefix="$PREFIXDIR/MacOS" --libdir="$PREFIXDIR/MacOS/lib" toolset=darwin architecture=ia64 --debug-configuration variant=${RELEASE} install
+    ./bjam --prefix="$PREFIXDIR" --user-config="$HOME/boost_darwin_user-config.jam" -j $THREAD_COUNT --exec-prefix="$PREFIXDIR/MacOS" --libdir="$PREFIXDIR/MacOS/lib" toolset=darwin-4.6.2 architecture=ia64 variant=${RELEASE} install
 
     doneSection
 }
@@ -351,24 +357,24 @@ mkdir -p $BUILDDIR
 
 case $BOOST_VERSION in
     1_48_0 )
-        #cleanFrameworks
+        cleanFrameworks
         for build in release debug; do
             echo ""
             echo "###"
             echo "### building $build"
             echo "###"
             RELEASE=$build
-        #cleanEverythingReadyToStart
-        #unpackBoost
-        #inventMissingHeaders
-        #writeBjamUserConfig
-        #bootstrapBoost
-        #buildBoostForiPhoneOS_1_48_0
+        cleanEverythingReadyToStart
+        unpackBoost
+        inventMissingHeaders
+        writeBjamUserConfig
+        bootstrapBoost
+        buildBoostForiPhoneOS_1_48_0
         buildBoostForOSX_1_48_0
         setDylibInstallName
-        #scrunchAllLibsTogetherInOneLibPerPlatform
-        #lipoAllBoostLibraries
-        #buildFramework
+        scrunchAllLibsTogetherInOneLibPerPlatform
+        lipoAllBoostLibraries
+        buildFramework
         done
         ;;
     default )
