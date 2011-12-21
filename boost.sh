@@ -94,8 +94,8 @@ cleanEverythingReadyToStart()
 {
     echo Cleaning everything before we start to build...
     #rm -rf $BOOST_SRC   A.B.:Let's keep the decompressed tarball around...
-    rm -rf $BUILDDIR
-    rm -rf $PREFIXDIR
+    #rm -rf $BUILDDIR
+    #rm -rf $PREFIXDIR
     doneSection
 }
 
