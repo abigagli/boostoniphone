@@ -169,6 +169,15 @@ buildBoostForiPhoneOS_1_48_0()
     doneSection
 }
 
+buildBoostForOSX_1_48_0()
+{
+    cd $BOOST_SRC
+
+    ./bjam --prefix="$PREFIXDIR" --exec-prefix="$PREFIXDIR/MacOS" --libdir="$PREFIXDIR/MacOS/lib" toolset=darwin architecture=ia64 variant=${RELEASE} install
+
+    doneSection
+}
+
 #===============================================================================
 setDylibInstallName()
 {
@@ -232,10 +241,10 @@ scrunchAllLibsTogetherInOneLibPerPlatform()
 
     echo Splitting all existing fat binaries...
     for NAME in $BOOST_LIBS; do
-        ALL_LIBS="$ALL_LIBS libboost_$NAME.a"
-        lipo "$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-4.2.1~iphone/${RELEASE}/architecture-arm/link-static/macosx-version-iphone-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a" -thin armv6 -o $BUILDDIR/armv6/libboost_$NAME.a
-        lipo "$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-4.2.1~iphone/${RELEASE}/architecture-arm/link-static/macosx-version-iphone-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a" -thin armv7 -o $BUILDDIR/armv7/libboost_$NAME.a
-        cp "$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-4.2.1~iphonesim/${RELEASE}/architecture-x86/link-static/macosx-version-iphonesim-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a" $BUILDDIR/i386/
+        ALL_LIBS="$ALL_LIBS libboost_${NAME//test/unit_test_framework}.a"
+        lipo "$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-4.2.1~iphone/${RELEASE}/architecture-arm/link-static/macosx-version-iphone-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_${NAME//test/unit_test_framework}.a" -thin armv6 -o $BUILDDIR/armv6/libboost_${NAME//test/unit_test_framework}.a
+        lipo "$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-4.2.1~iphone/${RELEASE}/architecture-arm/link-static/macosx-version-iphone-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_${NAME//test/unit_test_framework}.a" -thin armv7 -o $BUILDDIR/armv7/libboost_${NAME//test/unit_test_framework}.a
+        cp "$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-4.2.1~iphonesim/${RELEASE}/architecture-x86/link-static/macosx-version-iphonesim-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_${NAME//test/unit_test_framework}.a" $BUILDDIR/i386/
     done
 
     echo "Decomposing each architecture's .a files"
@@ -353,7 +362,9 @@ case $BOOST_VERSION in
         inventMissingHeaders
         writeBjamUserConfig
         bootstrapBoost
-            buildBoostForiPhoneOS_1_48_0
+        buildBoostForiPhoneOS_1_48_0
+        buildBoostForOSX_1_48_0
+        setDylibInstallName
         scrunchAllLibsTogetherInOneLibPerPlatform
         lipoAllBoostLibraries
         buildFramework
