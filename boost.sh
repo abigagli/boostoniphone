@@ -119,6 +119,7 @@ writeBjamUserConfig()
     #mkdir -p $BUILDDIR
     #cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
     cat > ~/boost_iOS5_user-config.jam <<EOF
+using darwin : 4.6.2 : x86_64-apple-darwin11.2.0-g++ ;
 using darwin : 4.2.1~iphone
    : "${DEVELOPER}"/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc -arch armv7 -mthumb -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
    : <striper>
@@ -173,7 +174,7 @@ buildBoostForOSX_1_48_0()
 {
     cd $BOOST_SRC
 
-    ./bjam --prefix="$PREFIXDIR" --exec-prefix="$PREFIXDIR/MacOS" --libdir="$PREFIXDIR/MacOS/lib" toolset=darwin architecture=ia64 variant=${RELEASE} install
+    ./bjam --prefix="$PREFIXDIR" --exec-prefix="$PREFIXDIR/MacOS" --libdir="$PREFIXDIR/MacOS/lib" toolset=darwin architecture=ia64 --debug-configuration variant=${RELEASE} install
 
     doneSection
 }
@@ -350,24 +351,24 @@ mkdir -p $BUILDDIR
 
 case $BOOST_VERSION in
     1_48_0 )
-        cleanFrameworks
+        #cleanFrameworks
         for build in release debug; do
             echo ""
             echo "###"
             echo "### building $build"
             echo "###"
             RELEASE=$build
-        cleanEverythingReadyToStart
-        unpackBoost
-        inventMissingHeaders
-        writeBjamUserConfig
-        bootstrapBoost
-        buildBoostForiPhoneOS_1_48_0
+        #cleanEverythingReadyToStart
+        #unpackBoost
+        #inventMissingHeaders
+        #writeBjamUserConfig
+        #bootstrapBoost
+        #buildBoostForiPhoneOS_1_48_0
         buildBoostForOSX_1_48_0
         setDylibInstallName
-        scrunchAllLibsTogetherInOneLibPerPlatform
-        lipoAllBoostLibraries
-        buildFramework
+        #scrunchAllLibsTogetherInOneLibPerPlatform
+        #lipoAllBoostLibraries
+        #buildFramework
         done
         ;;
     default )
