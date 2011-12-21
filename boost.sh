@@ -162,11 +162,10 @@ buildBoostForiPhoneOS_1_48_0()
 {
     cd $BOOST_SRC
     threadCount=`hwprefs thread_count`
-    ./bjam --prefix="$PREFIXDIR" --user-config=$HOME/boost_iOS5_user-confi.jam -j $threadCount toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static variant=${RELEASE} install
+    ./bjam --prefix="$PREFIXDIR" --user-config="$HOME/boost_iOS5_user-config.jam" -j $threadCount toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static variant=${RELEASE} install
     doneSection
-}
 
-    ./bjam --user-confi=$HOME/boost_iOS5_user-config.jam -j $threadCount toolset=darwin architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static variant=${RELEASE} stage
+    ./bjam --user-config="$HOME/boost_iOS5_user-config.jam" -j $threadCount toolset=darwin architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static variant=${RELEASE} stage
     doneSection
 }
 
