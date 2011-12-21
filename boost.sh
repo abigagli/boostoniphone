@@ -35,8 +35,8 @@
 : ${TARBALLDIR:=`pwd`}
 : ${SRCDIR:=`pwd`/src}
 : ${BUILDDIR:=`pwd`/build}
-: ${PREFIXDIR:=`pwd`/prefix}
-: ${FRAMEWORKDIR:=`pwd`/framework}
+: ${PREFIXDIR:=`pwd`/../INSTALL}
+: ${FRAMEWORKDIR:=$PREFIXDIR/framework}
 
 BOOST_TARBALL=$TARBALLDIR/boost_$BOOST_VERSION.tar.bz2
     BOOST_SRC=$SRCDIR/boost_${BOOST_VERSION}
@@ -46,8 +46,8 @@ DEVELOPER="`xcode-select -print-path`"
 ARM_DEV_DIR="${DEVELOPER}"/Platforms/iPhoneOS.platform/Developer/usr/bin/
 SIM_DEV_DIR="${DEVELOPER}"/Platforms/iPhoneSimulator.platform/Developer/usr/bin/
 
-ARM_COMBINED_LIB=$BUILDDIR/lib_boost_arm.a
-SIM_COMBINED_LIB=$BUILDDIR/lib_boost_x86.a
+#ARM_COMBINED_LIB=$BUILDDIR/lib_boost_arm.a Apparently Unused
+#SIM_COMBINED_LIB=$BUILDDIR/lib_boost_x86.a Apparently Unused 
 
 #===============================================================================
 
@@ -93,7 +93,7 @@ cleanFrameworks()
 cleanEverythingReadyToStart()
 {
     echo Cleaning everything before we start to build...
-    rm -rf $BOOST_SRC
+    #rm -rf $BOOST_SRC   A.B.:Let's keep the decompressed tarball around...
     rm -rf $BUILDDIR
     rm -rf $PREFIXDIR
     doneSection
@@ -162,15 +162,24 @@ buildBoostForiPhoneOS_1_48_0()
 {
     cd $BOOST_SRC
     threadCount=`hwprefs thread_count`
-    ./bjam --prefix="$PREFIXDIR" --user-confi=$HOME/boost_iOS5_user-confi.jam -j $threadCount toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static variant=${RELEASE} install
+    ./bjam --prefix="$PREFIXDIR" --user-config=$HOME/boost_iOS5_user-confi.jam -j $threadCount toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static variant=${RELEASE} install
     doneSection
+}
 
-    ./bjam --user-confi=$HOME/boost_iOS5_user-confi.jam -j $threadCount toolset=darwin architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static variant=${RELEASE} stage
+    ./bjam --user-confi=$HOME/boost_iOS5_user-config.jam -j $threadCount toolset=darwin architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static variant=${RELEASE} stage
     doneSection
 }
 
 #===============================================================================
+setDylibInstallName()
+{
+    for NAME in $BOOST_LIBS; do
+        install_name_tool -id "@rpath/libboost_${NAME//test/unit_test_framework}.dylib" $PREFIXDIR/MacOS/lib/libboost_${NAME//test/unit_test_framework}.dylib
+    done
 
+    doneSection
+}
+#===============================================================================
 # $1: Name of a boost library to lipoficate (technical term)
 lipoficate()
 {
@@ -180,12 +189,12 @@ lipoficate()
     ARMV6=$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-4.2.1~iphone/${RELEASE}/architecture-arm/link-static/macosx-version-iphone-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a
     I386=$BOOST_SRC/bin.v2/libs/$NAME/build/darwin-4.2.1~iphonesim/${RELEASE}/architecture-x86/link-static/macosx-version-iphonesim-$IPHONE_SDKVERSION/target-os-iphone/threading-multi/libboost_$NAME.a
 
-    mkdir -p $PREFIXDIR/lib
+    mkdir -p $PREFIXDIR/Universal-iOS_Simulator/lib
     lipo \
         -create \
         "$ARMV6" \
         "$I386" \
-        -o "$PREFIXDIR/lib/libboost_$NAME.a" \
+        -o          "$PREFIXDIR/Universal-iOS_Simulator/lib/libboost_${NAME//test/unit_test_framework}.a" \
     || abort "Lipo $1 failed"
 }
 
@@ -326,7 +335,8 @@ EOF
 # Execution starts here
 #===============================================================================
 
-[ -f "$BOOST_TARBALL" ] || abort "Source tarball missing."
+#A.B.
+#[ -f "$BOOST_TARBALL" ] || abort "Source tarball missing."
 
 mkdir -p $BUILDDIR
 
@@ -339,15 +349,15 @@ case $BOOST_VERSION in
             echo "### building $build"
             echo "###"
             RELEASE=$build
-            cleanEverythingReadyToStart
-            unpackBoost
-            inventMissingHeaders
-            writeBjamUserConfig
-            bootstrapBoost
+        cleanEverythingReadyToStart
+        unpackBoost
+        inventMissingHeaders
+        writeBjamUserConfig
+        bootstrapBoost
             buildBoostForiPhoneOS_1_48_0
-            scrunchAllLibsTogetherInOneLibPerPlatform
-            lipoAllBoostLibraries
-            buildFramework
+        scrunchAllLibsTogetherInOneLibPerPlatform
+        lipoAllBoostLibraries
+        buildFramework
         done
         ;;
     default )
