@@ -318,7 +318,7 @@ buildFramework()
     || abort "Lipo $1 failed"
 
     echo "Framework: Copying includes..."
-    cp -r $PREFIXDIR/include/boost/*  $FRAMEWORK_BUNDLE/Headers/
+    cp -r $PREFIXDIR/include/*  $FRAMEWORK_BUNDLE/Headers/
 
     echo "Framework: Creating plist..."
     cat > $FRAMEWORK_BUNDLE/Resources/Info.plist <<EOF
