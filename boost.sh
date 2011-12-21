@@ -174,7 +174,7 @@ buildBoostForOSX_1_48_0()
 {
     cd $BOOST_SRC
 
-    ./bjam --prefix="$PREFIXDIR" --exec-prefix="$PREFIXDIR/MacOS" --libdir="$PREFIXDIR/MacOS/lib" toolset=darwin architecture=ia64 --debug-configuration variant=${RELEASE} install
+    ./bjam --prefix="$PREFIXDIR" --user-config="$HOME/boost_iOS5_user-config.jam" --exec-prefix="$PREFIXDIR/MacOS" --libdir="$PREFIXDIR/MacOS/lib" toolset=darwin architecture=ia64 --debug-configuration variant=${RELEASE} install
 
     doneSection
 }
