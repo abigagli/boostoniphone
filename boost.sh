@@ -117,8 +117,8 @@ writeBjamUserConfig()
     # ONLY SEEMS TO WORK IN HOME DIR GRR
     echo Writing usr-config
     #mkdir -p $BUILDDIR
-    cat > ~/boost_iOS5_user-config.jam <<EOF
     #cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
+    cat > ~/boost_iOS5_user-config.jam <<EOF
 using darwin : 4.2.1~iphone
    : "${DEVELOPER}"/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc -arch armv7 -mthumb -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
    : <striper>
@@ -161,11 +161,11 @@ bootstrapBoost()
 buildBoostForiPhoneOS_1_48_0()
 {
     cd $BOOST_SRC
-    threadCount=`hwprefs thread_count`
-    ./bjam --prefix="$PREFIXDIR" --user-config="$HOME/boost_iOS5_user-config.jam" -j $threadCount toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static variant=${RELEASE} install
+    #threadCount=`hwprefs thread_count`
+    ./bjam --prefix="$PREFIXDIR" --user-config="$HOME/boost_iOS5_user-config.jam" toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static variant=${RELEASE} install
     doneSection
 
-    ./bjam --user-config="$HOME/boost_iOS5_user-config.jam" -j $threadCount toolset=darwin architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static variant=${RELEASE} stage
+    ./bjam --user-config="$HOME/boost_iOS5_user-config.jam" toolset=darwin architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static variant=${RELEASE} stage
     doneSection
 }
 
