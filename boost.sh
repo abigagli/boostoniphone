@@ -19,9 +19,9 @@
 # same directory as this script, and run "./boost.sh". Grab a cuppa. And voila.
 #===============================================================================
 
-: ${BOOST_VERSION:=1_48_0}
+: ${BOOST_VERSION:=1_49_0}
 : ${BOOST_LIBS:="thread date_time serialization iostreams signals filesystem regex program_options system python test"}
-: ${IPHONE_SDKVERSION:=5.0}
+: ${IPHONE_SDKVERSION:=5.1}
 : ${EXTRA_CPPFLAGS:="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS"}
 : ${THREAD_COUNT:=4}
 
@@ -121,8 +121,8 @@ writeBjamUserConfig()
     #mkdir -p $BUILDDIR
     #cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
     cat > ~/boost_darwin_user-config.jam <<EOF
-using darwin : 4.6.2
-   : x86_64-apple-darwin11.2.0-g++
+using darwin : 4.7.1
+   : x86_64-apple-darwin11.3.0-g++
    ;
 using darwin : 4.2.1~iphone
    : "${DEVELOPER}"/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc -arch armv7 -mthumb -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
@@ -163,7 +163,7 @@ bootstrapBoost()
 
 #===============================================================================
 
-buildBoostForiPhoneOS_1_48_0()
+buildBoostForiPhoneOS()
 {
     cd $BOOST_SRC
 # add --debug-configuration to check used configuration
@@ -175,12 +175,12 @@ buildBoostForiPhoneOS_1_48_0()
     doneSection
 }
 
-buildBoostForOSX_1_48_0()
+buildBoostForOSX()
 {
     cd $BOOST_SRC
 # add --debug-configuration to check used configuration
 
-    ./bjam --prefix="$PREFIXDIR" --user-config="$HOME/boost_darwin_user-config.jam" -j $THREAD_COUNT --exec-prefix="$PREFIXDIR/MacOS" --libdir="$PREFIXDIR/MacOS/lib" toolset=darwin-4.6.2 architecture=ia64 variant=${RELEASE} install
+    ./bjam --prefix="$PREFIXDIR" --user-config="$HOME/boost_darwin_user-config.jam" -j $THREAD_COUNT --exec-prefix="$PREFIXDIR/MacOS" --libdir="$PREFIXDIR/MacOS/lib" toolset=darwin-4.7.1 architecture=ia64 variant=${RELEASE} install
 
     doneSection
 }
@@ -360,7 +360,7 @@ EOF
 mkdir -p $BUILDDIR
 
 case $BOOST_VERSION in
-    1_48_0 )
+    1_49_0 )
         cleanFrameworks
         for build in release debug; do
             echo ""
@@ -373,8 +373,8 @@ case $BOOST_VERSION in
         inventMissingHeaders
         writeBjamUserConfig
         bootstrapBoost
-        buildBoostForiPhoneOS_1_48_0
-        buildBoostForOSX_1_48_0
+        buildBoostForiPhoneOS
+        buildBoostForOSX
         setDylibInstallName
         scrunchAllLibsTogetherInOneLibPerPlatform
         lipoAllBoostLibraries
