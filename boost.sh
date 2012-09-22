@@ -202,7 +202,7 @@ buildBoostForOSX()
     cd $BOOST_SRC
 # add --debug-configuration to check used configuration
 
-    ./bjam --prefix="$PREFIXDIR" --user-config="$HOME/boost_darwin_user-config.jam" -j $THREAD_COUNT --exec-prefix="$PREFIXDIR/$RELEASE/Mac" --libdir="$PREFIXDIR/$RELEASE/Mac/lib" toolset=darwin macosx-version=${OSX_SDKVERSION} architecture=ia64 variant=${RELEASE} install
+    ./bjam --prefix="$PREFIXDIR" --user-config="$HOME/boost_darwin_user-config.jam" -j $THREAD_COUNT --exec-prefix="$PREFIXDIR/$RELEASE/Mac" --libdir="$PREFIXDIR/$RELEASE/Mac/lib" toolset=darwin macosx-version=${OSX_SDKVERSION} architecture=x86 address-model=64 variant=${RELEASE} install
 
     doneSection
 }
