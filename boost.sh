@@ -130,7 +130,13 @@ writeBjamUserConfig()
     echo Writing usr-config
     #mkdir -p $BUILDDIR
     #cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
-    cat > ~/boost_darwin_user-config.jam <<EOF
+    [ -f ~/boost_darwin_user-config.jam ] || cat > ~/boost_darwin_user-config.jam <<EOF
+using clang : 11 #Use as "bjam --toolset=clang-11" 
+   : "$LLVMROOT/bin/clang++"
+   : <striper>
+   <compileflags>"-std=c++11 -stdlib=libc++"
+   <linkflags>"-stdlib=libc++ -L$LIBCXXROOT/lib"
+   ;
 using darwin : ${OSX_SDKVERSION}~macosx
    : ${OSX_COMPILER}
    : <striper>
