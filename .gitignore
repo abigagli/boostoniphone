@@ -2,7 +2,7 @@ build
 src
 tmp
 prefix
-boost*.tar.bz2
+boost
 framework/
 xcode/Boost.xcodeproj/*.mode1v3
 xcode/Boost.xcodeproj/*.pbxuser
