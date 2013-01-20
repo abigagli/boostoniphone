@@ -18,7 +18,8 @@
 # same directory as this script, and run "./boost.sh". Grab a cuppa. And voila.
 #===============================================================================
 
-: ${BOOST_LIBS:="thread signals filesystem regex system date_time"}
+: ${BOOST_LIBS:="thread date_time serialization iostreams signals filesystem regex system python test context timer chrono"}
+#: ${BOOST_LIBS:="thread signals filesystem regex system date_time"}
 : ${IPHONE_SDKVERSION:=6.0}
 : ${OSX_SDKVERSION:=10.8}
 : ${XCODE_ROOT:=`xcode-select -print-path`}
@@ -47,8 +48,8 @@ BOOST_SRC=$SRCDIR/boost
 ARM_DEV_DIR=$XCODE_ROOT/Platforms/iPhoneOS.platform/Developer/usr/bin/
 SIM_DEV_DIR=$XCODE_ROOT/Platforms/iPhoneSimulator.platform/Developer/usr/bin/
 
-ARM_COMBINED_LIB=$IOSBUILDDIR/lib_boost_arm.a
-SIM_COMBINED_LIB=$IOSBUILDDIR/lib_boost_x86.a
+#ARM_COMBINED_LIB=$IOSBUILDDIR/lib_boost_arm.a
+#SIM_COMBINED_LIB=$IOSBUILDDIR/lib_boost_x86.a
 
 #===============================================================================
 
