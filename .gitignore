@@ -1,9 +1,8 @@
 build
-src
-tmp
-prefix
+*-build
 boost
-framework/
+ios
+osx
 xcode/Boost.xcodeproj/*.mode1v3
 xcode/Boost.xcodeproj/*.pbxuser
 .DS_Store
