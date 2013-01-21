@@ -104,19 +104,19 @@ updateBoost()
 		svn co http://svn.boost.org/svn/boost/tags/release/$BOOST_BRANCH boost
 	fi
 
-	svn st $BOOST_SRC/tools/build/v2/user-config.jam | grep '^M'
-	if [ $? != 0 ]
-	then
-    	cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
-using clang : ToT #Use as "bjam --toolset=clang-ToT" 
+	#svn st $BOOST_SRC/tools/build/v2/user-config.jam | grep '^M'
+	#if [ $? != 0 ]
+	#then
+    #    cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
+
+    cat > ~/user-config.jam <<EOF
+using clang : ToT #Use as "b2 --toolset=clang-ToT" 
    : $LLVMROOT/bin/clang++ -std=c++11 -stdlib=libc++
-   : <striper>
-   <linkflags>-stdlib=libc++ -L$LIBCXXROOT/lib
+   : <striper> <linkflags>-L$LIBCXXROOT/lib
    ;
-using clang : xcode #Use as "bjam --toolset=clang-xcode" 
+using clang : xcode #Use as "b2 --toolset=clang-xcode" 
    : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++11 -stdlib=libc++
-   : <striper>
-   <linkflags>-stdlib=libc++
+   : <striper> 
    ;
 using darwin : ${IPHONE_SDKVERSION}~iphone
    : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/$COMPILER -arch armv6 -arch armv7 -arch armv7s -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
@@ -129,7 +129,7 @@ using darwin : ${IPHONE_SDKVERSION}~iphonesim
    : <architecture>x86 <target-os>iphone
    ;
 EOF
-	fi
+	#fi
 
     doneSection
 }
@@ -158,35 +158,65 @@ bootstrapBoost()
 
 #===============================================================================
 
-buildBoostForiPhoneOS()
+buildBoostForiOSAndOSX()
 {
     cd $BOOST_SRC
-# add --debug-configuration to check used configuration
-    
-	# Install this one so we can copy the includes for the frameworks...
-    ./bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static stage
+
+    # add --debug-configuration to check used configuration
+    # iOS static libs: build and stage only
+    ./b2 -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static stage
     doneSection
 
-    ./bjam -j16 --build-dir=../iphonesim-build --stagedir=../iphonesim-build/stage toolset=darwin architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static stage
+    # iOS-simulator static libs: build and stage only
+    ./b2 -j16 --build-dir=../iphonesim-build --stagedir=../iphonesim-build/stage toolset=darwin architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static stage
 	doneSection
 
-	./bjam -j16 --build-dir=../osx-build --stagedir=../osx-build/stage --prefix=$OSXPREFIXDIR toolset=clang-xcode cxxflags="-std=c++11 -stdlib=libc++ -arch i386 -arch x86_64" threading=multi link=static stage install
+    # OSX dylibs: build and stage only
+    # NOTE: We _stage_ into OSXPREFIXDIR (the install location) instead of _installing_ there
+    # so as to avoid an additional copy of header files. 
+    # (which will be copied by the following install for OSX static libs
+	./b2 -j16 --build-dir=../osx-build --stagedir=$OSXPREFIXDIR/dynamic toolset=clang-xcode cxxflags="-arch i386 -arch x86_64" linkflags="-arch i386 -arch x86_64 -headerpad_max_install_names" link=shared threading=multi stage 
+    doneSection
+
+    # OSX static libs: build and install. This will copy the header files too
+	./b2 -j16 --build-dir=../osx-build --stagedir=../osx-build/stage --prefix=$OSXPREFIXDIR toolset=clang-xcode cxxflags="-arch i386 -arch x86_64" linkflags="-arch i386 -arch x86_64 -headerpad_max_install_names" link=static threading=multi stage install
     doneSection
 }
 
 #===============================================================================
 
-#setDylibInstallName()
-#{
-#    for LIB in $OSXPREFIXDIR/lib/libboost_*.dylib; do
-#        NAME=$(basename $LIB)
-#        set -x
-#        install_name_tool -id "@rpath/$NAME" $LIB
-#        set +x
-#    done
-#
-#    doneSection
-#}
+setDylibInstallName()
+{
+    for file in $OSXPREFIXDIR/dynamic/lib/libboost_*.dylib; do
+        curinstallname=$(otool -D $file | tail -1) 
+
+        if [[ ! "$curinstallname" == @* ]]; then
+            echo "Setting installname for $file"
+            install_name_tool -id @rpath/$(basename $file) $file || abort "install_name_tool -id failed"
+        else
+            echo "installname already relative: $curinstallname"
+        fi
+
+        while read line
+        do
+            libname=$(awk '{print $1}' <<< "$line")
+
+            case $libname in
+                /*) tochange=0;;
+                @*) tochange=0;;
+                 *) tochange=1;;
+             esac
+
+             if [ $tochange -eq 1 ]; then
+                 echo "changing install name: $libname -> @rpath/$libname"
+                 install_name_tool -change $libname @rpath/$libname $file || abort "install_name_tool -change failed"
+             fi
+         done < <(otool -L $file | grep -v ':')
+         echo
+     done
+
+     doneSection
+}
 #===============================================================================
 
 scrunchAllLibsTogetherInOneLibPerPlatform()
@@ -354,7 +384,8 @@ echo
 
 inventMissingHeaders
 bootstrapBoost
-buildBoostForiPhoneOS
+buildBoostForiOSAndOSX
+setDylibInstallName
 scrunchAllLibsTogetherInOneLibPerPlatform
 buildFramework $IOSFRAMEWORKDIR $IOSBUILDDIR
 buildFramework $OSXFRAMEWORKDIR $OSXBUILDDIR
