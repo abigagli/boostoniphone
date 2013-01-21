@@ -291,6 +291,11 @@ buildFramework()
     echo "Framework: Copying includes..."
     cp -r $OSXPREFIXDIR/include/boost/*  $FRAMEWORK_BUNDLE/Headers/
 
+    echo "Framework: Creating symlink into Headers to have Xcode -F working"
+    pushd $FRAMEWORK_BUNDLE/Headers
+    ln -s . boost
+    popd
+
     echo "Framework: Creating plist..."
     cat > $FRAMEWORK_BUNDLE/Resources/Info.plist <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
