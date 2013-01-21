@@ -18,7 +18,7 @@
 # same directory as this script, and run "./boost.sh". Grab a cuppa. And voila.
 #===============================================================================
 
-: ${BOOST_LIBS:="thread date_time serialization iostreams signals filesystem regex system python test context timer chrono"}
+: ${BOOST_LIBS:="thread date_time serialization iostreams signals filesystem regex system python test context timer chrono program_options"}
 #: ${BOOST_LIBS:="thread signals filesystem regex system date_time"}
 : ${IPHONE_SDKVERSION:=6.0}
 : ${OSX_SDKVERSION:=10.8}
@@ -247,6 +247,9 @@ scrunchAllLibsTogetherInOneLibPerPlatform()
 
     echo ...x86_64
     (cd $OSXBUILDDIR/x86_64;  $SIM_DEV_DIR/ar crus libboost.a obj/*.o; )
+
+    echo "Creating universal osx uberlib into $OSXPREFIXDIR/lib/libboost.a"
+    $ARM_DEV_DIR/lipo -create $OSXBUILDDIR/*/libboost.a -o "$OSXPREFIXDIR/lib/libboost.a" || abort "Lipo failed"
 }
 
 #===============================================================================
