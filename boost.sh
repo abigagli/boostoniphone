@@ -291,7 +291,10 @@ buildFramework()
     echo "Framework: Copying includes..."
     cp -r $OSXPREFIXDIR/include/boost/*  $FRAMEWORK_BUNDLE/Headers/
 
-    echo "Framework: Creating symlink into Headers to have Xcode -F working"
+    #Create a short-circuit symlink into framework's Headers folder
+    #so that setting FRAMEWORK_SEARCH_PATHS in Xcode makes all #include <boost/...>
+    #work without requiring to set HEADER_SEARCH_PATHS too (see https://devforums.apple.com/message/595808#595808)
+    echo "Framework: Creating 'boost' symlink into Headers" 
     pushd $FRAMEWORK_BUNDLE/Headers
     ln -s . boost
     popd
