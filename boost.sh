@@ -36,7 +36,8 @@
 : ${SRCDIR:=`pwd`}
 : ${IOSBUILDDIR:=`pwd`/ios/build}
 : ${OSXBUILDDIR:=`pwd`/osx/build}
-: ${PREFIXDIR:=`pwd`/ios/prefix}
+: ${IOSPREFIXDIR:=`pwd`/ios/INSTALL}
+: ${OSXPREFIXDIR:=`pwd`/osx/INSTALL}
 : ${IOSFRAMEWORKDIR:=`pwd`/ios/framework}
 : ${OSXFRAMEWORKDIR:=`pwd`/osx/framework}
 : ${COMPILER:="clang++"}
@@ -81,9 +82,10 @@ cleanEverythingReadyToStart()
 	rm -rf iphone-build iphonesim-build osx-build
     rm -rf $IOSBUILDDIR
     rm -rf $OSXBUILDDIR
-    rm -rf $PREFIXDIR
-    rm -rf $IOSFRAMEWORKDIR/$FRAMEWORK_NAME.framework
-    rm -rf $OSXFRAMEWORKDIR/$FRAMEWORK_NAME.framework
+    rm -rf $IOSPREFIXDIR
+    rm -rf $OSXPREFIXDIR
+    rm -rf $IOSFRAMEWORKDIR
+    rm -rf $OSXFRAMEWORKDIR
     doneSection
 }
 
@@ -106,6 +108,16 @@ updateBoost()
 	if [ $? != 0 ]
 	then
     	cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
+using clang : ToT #Use as "bjam --toolset=clang-ToT" 
+   : $LLVMROOT/bin/clang++ -std=c++11 -stdlib=libc++
+   : <striper>
+   <linkflags>-stdlib=libc++ -L$LIBCXXROOT/lib
+   ;
+using clang : xcode #Use as "bjam --toolset=clang-xcode" 
+   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++11 -stdlib=libc++
+   : <striper>
+   <linkflags>-stdlib=libc++
+   ;
 using darwin : ${IPHONE_SDKVERSION}~iphone
    : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/$COMPILER -arch armv6 -arch armv7 -arch armv7s -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
    : <striper> <root>$XCODE_ROOT/Platforms/iPhoneOS.platform/Developer
@@ -149,19 +161,32 @@ bootstrapBoost()
 buildBoostForiPhoneOS()
 {
     cd $BOOST_SRC
+# add --debug-configuration to check used configuration
     
 	# Install this one so we can copy the includes for the frameworks...
-    ./bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage --prefix=$PREFIXDIR toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static stage
-    ./bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage --prefix=$PREFIXDIR toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static install
+    ./bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static stage
     doneSection
 
-    ./bjam -j16 --build-dir=../iphonesim-build --stagedir=../iphonesim-build/stage --toolset=darwin architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static stage
+    ./bjam -j16 --build-dir=../iphonesim-build --stagedir=../iphonesim-build/stage toolset=darwin architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static stage
 	doneSection
 
-	./b2 -j16 --build-dir=../osx-build --stagedir=../osx-build/stage toolset=clang cxxflags="-std=c++11 -stdlib=libc++ -arch i386 -arch x86_64" linkflags="-stdlib=libc++" link=static threading=multi stage
+	./bjam -j16 --build-dir=../osx-build --stagedir=../osx-build/stage --prefix=$OSXPREFIXDIR toolset=clang-xcode cxxflags="-std=c++11 -stdlib=libc++ -arch i386 -arch x86_64" threading=multi link=static stage install
     doneSection
 }
 
+#===============================================================================
+
+#setDylibInstallName()
+#{
+#    for LIB in $OSXPREFIXDIR/lib/libboost_*.dylib; do
+#        NAME=$(basename $LIB)
+#        set -x
+#        install_name_tool -id "@rpath/$NAME" $LIB
+#        set +x
+#    done
+#
+#    doneSection
+#}
 #===============================================================================
 
 scrunchAllLibsTogetherInOneLibPerPlatform()
@@ -179,17 +204,18 @@ scrunchAllLibsTogetherInOneLibPerPlatform()
     ALL_LIBS=""
 
     echo Splitting all existing fat binaries...
-    for NAME in $BOOST_LIBS; do
-        ALL_LIBS="$ALL_LIBS libboost_$NAME.a"
+    for NAME in $(basename iphone-build/stage/lib/*.a); do
+    #for NAME in $BOOST_LIBS; do
+        ALL_LIBS="$ALL_LIBS $NAME"
 
-        $ARM_DEV_DIR/lipo "iphone-build/stage/lib/libboost_$NAME.a" -thin armv6 -o $IOSBUILDDIR/armv6/libboost_$NAME.a
-        $ARM_DEV_DIR/lipo "iphone-build/stage/lib/libboost_$NAME.a" -thin armv7 -o $IOSBUILDDIR/armv7/libboost_$NAME.a
-        $ARM_DEV_DIR/lipo "iphone-build/stage/lib/libboost_$NAME.a" -thin armv7s -o $IOSBUILDDIR/armv7s/libboost_$NAME.a
+        $ARM_DEV_DIR/lipo "iphone-build/stage/lib/$NAME" -thin armv6 -o $IOSBUILDDIR/armv6/$NAME
+        $ARM_DEV_DIR/lipo "iphone-build/stage/lib/$NAME" -thin armv7 -o $IOSBUILDDIR/armv7/$NAME
+        $ARM_DEV_DIR/lipo "iphone-build/stage/lib/$NAME" -thin armv7s -o $IOSBUILDDIR/armv7s/$NAME
 
-        cp "iphonesim-build/stage/lib/libboost_$NAME.a" $IOSBUILDDIR/i386/
+        cp "iphonesim-build/stage/lib/$NAME" $IOSBUILDDIR/i386/
 
-        $ARM_DEV_DIR/lipo "osx-build/stage/lib/libboost_$NAME.a" -thin i386 -o $OSXBUILDDIR/i386/libboost_$NAME.a
-        $ARM_DEV_DIR/lipo "osx-build/stage/lib/libboost_$NAME.a" -thin x86_64 -o $OSXBUILDDIR/x86_64/libboost_$NAME.a
+        $ARM_DEV_DIR/lipo "osx-build/stage/lib/$NAME" -thin i386 -o $OSXBUILDDIR/i386/$NAME
+        $ARM_DEV_DIR/lipo "osx-build/stage/lib/$NAME" -thin x86_64 -o $OSXBUILDDIR/x86_64/$NAME
     done
 
     echo "Decomposing each architecture's .a files"
@@ -263,7 +289,7 @@ buildFramework()
     $ARM_DEV_DIR/lipo -create $BUILDDIR/*/libboost.a -o "$FRAMEWORK_INSTALL_NAME" || abort "Lipo $1 failed"
 
     echo "Framework: Copying includes..."
-    cp -r $PREFIXDIR/include/boost/*  $FRAMEWORK_BUNDLE/Headers/
+    cp -r $OSXPREFIXDIR/include/boost/*  $FRAMEWORK_BUNDLE/Headers/
 
     echo "Framework: Creating plist..."
     cat > $FRAMEWORK_BUNDLE/Resources/Info.plist <<EOF
@@ -306,7 +332,8 @@ echo "BOOST_LIBS:        $BOOST_LIBS"
 echo "BOOST_SRC:         $BOOST_SRC"
 echo "IOSBUILDDIR:       $IOSBUILDDIR"
 echo "OSXBUILDDIR:       $OSXBUILDDIR"
-echo "PREFIXDIR:         $PREFIXDIR"
+echo "IOSPREFIXDIR:      $IOSPREFIXDIR"
+echo "OSXPREFIXDIR:      $OSXPREFIXDIR"
 echo "IOSFRAMEWORKDIR:   $IOSFRAMEWORKDIR"
 echo "OSXFRAMEWORKDIR:   $OSXFRAMEWORKDIR"
 echo "IPHONE_SDKVERSION: $IPHONE_SDKVERSION"
