@@ -7,10 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C145A39D12538039007045D5 /* boost.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C16C60E110D05A0D00E55D60 /* boost.framework */; };
-		C16C814F10D0625500E55D60 /* allocate_shared_esft_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C16C810E10D0622C00E55D60 /* allocate_shared_esft_test.cpp */; };
+		8DEF00A216AD5C9000C38A6C /* boost.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8DEF00A116AD5C9000C38A6C /* boost.framework */; };
+		8DEF00A316AD5CB900C38A6C /* boost.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8DEF00A116AD5C9000C38A6C /* boost.framework */; };
 		C1C1B2B612573BBB00B08D83 /* UsingBoost.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C1C1B29812573AD400B08D83 /* UsingBoost.cpp */; };
-		C1C1B2B712573BBF00B08D83 /* boost.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C16C60E110D05A0D00E55D60 /* boost.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -18,7 +17,7 @@
 		1DF5F4DF0D08C38300B7A737 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		288765FC0DF74451002DB57D /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		8D1107310486CEB800E47090 /* Boost-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "Boost-Info.plist"; plistStructureDefinitionIdentifier = "com.apple.xcode.plist.structure-definition.iphone.info-plist"; sourceTree = "<group>"; };
-		C16C60E110D05A0D00E55D60 /* boost.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = boost.framework; path = ../framework/boost.framework; sourceTree = SOURCE_ROOT; };
+		8DEF00A116AD5C9000C38A6C /* boost.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = boost.framework; path = ../ios/framework/boost.framework; sourceTree = "<group>"; };
 		C16C810E10D0622C00E55D60 /* allocate_shared_esft_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = allocate_shared_esft_test.cpp; sourceTree = "<group>"; };
 		C16C810F10D0622C00E55D60 /* allocate_shared_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = allocate_shared_test.cpp; sourceTree = "<group>"; };
 		C16C811010D0622C00E55D60 /* atomic_count_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = atomic_count_test.cpp; sourceTree = "<group>"; };
@@ -80,7 +79,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C145A39D12538039007045D5 /* boost.framework in Frameworks */,
+				8DEF00A216AD5C9000C38A6C /* boost.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -88,7 +87,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C1C1B2B712573BBF00B08D83 /* boost.framework in Frameworks */,
+				8DEF00A316AD5CB900C38A6C /* boost.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -185,10 +184,10 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				8DEF00A116AD5C9000C38A6C /* boost.framework */,
 				1DF5F4DF0D08C38300B7A737 /* UIKit.framework */,
 				1D30AB110D05D00D00671497 /* Foundation.framework */,
 				288765FC0DF74451002DB57D /* CoreGraphics.framework */,
-				C16C60E110D05A0D00E55D60 /* boost.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -286,7 +285,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C16C814F10D0625500E55D60 /* allocate_shared_esft_test.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -311,7 +309,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 3.0;
 				PREBINDING = NO;
-				SDKROOT = iphoneos4.2;
+				SDKROOT = iphoneos;
 			};
 			name = Debug;
 		};
@@ -324,7 +322,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				PREBINDING = NO;
-				SDKROOT = iphoneos4.2;
+				SDKROOT = iphoneos;
 			};
 			name = Release;
 		};
@@ -336,8 +334,7 @@
 				COPY_PHASE_STRIP = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"\"$(SRCROOT)/../framework\"",
-					"\"$(SRCROOT)/../../../../Temp/boostScript/framework\"",
+					"\"$(SRCROOT)/../ios/framework\"",
 				);
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -345,13 +342,8 @@
 				GCC_PREFIX_HEADER = "";
 				INFOPLIST_FILE = "smart_ptr_tests-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../framework/boost.framework\"",
-					"\"$(SRCROOT)/../framework\"",
-					"\"$(SRCROOT)/../build/armv7\"",
-					"\"$(SRCROOT)/../build/armv6\"",
-				);
+				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				OTHER_LDFLAGS = (
 					"-framework",
 					Foundation,
@@ -372,21 +364,15 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"\"$(SRCROOT)/../framework\"",
-					"\"$(SRCROOT)/../../../../Temp/boostScript/framework\"",
+					"\"$(SRCROOT)/../ios/framework\"",
 				);
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
 				INFOPLIST_FILE = "smart_ptr_tests-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../framework/boost.framework\"",
-					"\"$(SRCROOT)/../framework\"",
-					"\"$(SRCROOT)/../build/armv7\"",
-					"\"$(SRCROOT)/../build/armv6\"",
-				);
+				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				OTHER_LDFLAGS = (
 					"-framework",
 					Foundation,
@@ -403,10 +389,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				CLANG_CXX_LIBRARY = "libc++";
 				COPY_PHASE_STRIP = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"\"$(SRCROOT)/../framework\"",
+					"\"$(SRCROOT)/../ios/framework\"",
 				);
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_FIX_AND_CONTINUE = YES;
@@ -416,6 +404,7 @@
 				GCC_PREFIX_HEADER = "";
 				INFOPLIST_FILE = "Using Boost-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
+				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
 				OTHER_LDFLAGS = (
 					"-framework",
 					Foundation,
@@ -429,11 +418,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				CLANG_CXX_LIBRARY = "libc++";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"\"$(SRCROOT)/../framework\"",
+					"\"$(SRCROOT)/../ios/framework\"",
 				);
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_MODEL_TUNING = G5;
@@ -441,6 +432,7 @@
 				GCC_PREFIX_HEADER = "$(SYSTEM_LIBRARY_DIR)/Frameworks/AppKit.framework/Headers/AppKit.h";
 				INFOPLIST_FILE = "Using Boost-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
+				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
 				OTHER_LDFLAGS = (
 					"-framework",
 					Foundation,
