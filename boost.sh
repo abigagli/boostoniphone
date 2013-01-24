@@ -260,26 +260,26 @@ scrunchAllLibsTogetherInOneLibPerPlatform()
         (cd $OSXBUILDDIR/x86_64/obj; ar -x ../$NAME );
     done
 
-    echo "Linking each architecture into an uberlib ($ALL_LIBS => libboost.a )"
-    rm $IOSBUILDDIR/*/libboost.a
+    echo "Linking each architecture into an uberlib ($ALL_LIBS => libboost_all.a )"
+    rm $IOSBUILDDIR/*/libboost_all.a
     echo ...armv6
-    (cd $IOSBUILDDIR/armv6; $ARM_DEV_DIR/ar crus libboost.a obj/*.o; )
+    (cd $IOSBUILDDIR/armv6; $ARM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
     echo ...armv7
-    (cd $IOSBUILDDIR/armv7; $ARM_DEV_DIR/ar crus libboost.a obj/*.o; )
+    (cd $IOSBUILDDIR/armv7; $ARM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
     echo ...armv7s
-    (cd $IOSBUILDDIR/armv7s; $ARM_DEV_DIR/ar crus libboost.a obj/*.o; )
+    (cd $IOSBUILDDIR/armv7s; $ARM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
     echo ...i386
-    (cd $IOSBUILDDIR/i386;  $SIM_DEV_DIR/ar crus libboost.a obj/*.o; )
+    (cd $IOSBUILDDIR/i386;  $SIM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
 
-    rm $OSXBUILDDIR/*/libboost.a
+    rm $OSXBUILDDIR/*/libboost_all.a
     echo ...osx-i386
-    (cd $OSXBUILDDIR/i386;  $SIM_DEV_DIR/ar crus libboost.a obj/*.o; )
+    (cd $OSXBUILDDIR/i386;  $SIM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
 
     echo ...x86_64
-    (cd $OSXBUILDDIR/x86_64;  $SIM_DEV_DIR/ar crus libboost.a obj/*.o; )
+    (cd $OSXBUILDDIR/x86_64;  $SIM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
 
-    echo "Creating universal osx uberlib into $OSXPREFIXDIR/lib/libboost.a"
-    $ARM_DEV_DIR/lipo -create $OSXBUILDDIR/*/libboost.a -o "$OSXPREFIXDIR/lib/libboost.a" || abort "Lipo failed"
+    echo "Creating universal osx uberlib into $OSXPREFIXDIR/lib/libboost_all.a"
+    $ARM_DEV_DIR/lipo -create $OSXBUILDDIR/*/libboost_all.a -o "$OSXPREFIXDIR/lib/libboost_all.a" || abort "Lipo failed"
 }
 
 #===============================================================================
@@ -319,7 +319,7 @@ buildFramework()
     FRAMEWORK_INSTALL_NAME=$FRAMEWORK_BUNDLE/Versions/$FRAMEWORK_VERSION/$FRAMEWORK_NAME
 
     echo "Lipoing library into $FRAMEWORK_INSTALL_NAME..."
-    $ARM_DEV_DIR/lipo -create $BUILDDIR/*/libboost.a -o "$FRAMEWORK_INSTALL_NAME" || abort "Lipo $1 failed"
+    $ARM_DEV_DIR/lipo -create $BUILDDIR/*/libboost_all.a -o "$FRAMEWORK_INSTALL_NAME" || abort "Lipo $1 failed"
 
     echo "Framework: Copying includes..."
     cp -r $OSXPREFIXDIR/include/boost/*  $FRAMEWORK_BUNDLE/Headers/
