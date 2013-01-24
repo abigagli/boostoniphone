@@ -1,9 +1,0 @@
-To build with fsf gcc (i.e. non apple's) neeed to avoid passing unsupported 'no-cpp-precomp' flag:
-
-tools/build/v2/tools/darwin.jam:
-MODIFY THE LINE: flags darwin.compile OPTIONS : -no-cpp-precomp -gdwarf-2 -fexceptions ;
-
-tools/build/v2/tools/darwin.py:
-MODIFY THE LINE: toolset.flags ('darwin.compile', 'OPTIONS', None, ['-Wno-long-double', '-no-cpp-precomp'])
-
-
