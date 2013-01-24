@@ -33,6 +33,11 @@
 #
 # Should perhaps also consider/use instead: -BOOST_SP_USE_PTHREADS
 
+# **********+ NOTE *************
+# {IOS|OSX}BUILDDIR are for "our" part of the build, i.e. where we disassemble fat libs and objects to
+# reassemble them in per-architecture uber-libs
+# while osx-build and ios-build are the actual folder where boost build takes place
+
 : ${SRCDIR:=`pwd`}
 : ${IOSBUILDDIR:=`pwd`/ios/build}
 : ${OSXBUILDDIR:=`pwd`/osx/build}
@@ -40,8 +45,9 @@
 : ${OSXPREFIXDIR:=`pwd`/osx/INSTALL}
 : ${IOSFRAMEWORKDIR:=`pwd`/ios/framework}
 : ${OSXFRAMEWORKDIR:=`pwd`/osx/framework}
-: ${COMPILER:="clang++"}
 
+[ -n "$1" ] || BUILD_ALL_FROM_SCRATCH=1
+OSX_TOOLSET=${1:-"clang-xcode"}
 BOOST_SRC=$SRCDIR/boost
 
 #===============================================================================
@@ -75,6 +81,13 @@ doneSection()
 }
 
 #===============================================================================
+cleanOSXRelated()
+{
+    echo Cleaning osx-build/stage and $OSXBUILDDIR before we start to build...
+    rm -rf $OSXBUILDDIR
+	rm -rf osx-build/stage
+    doneSection
+}
 
 cleanEverythingReadyToStart()
 {
@@ -104,27 +117,48 @@ updateBoost()
 		svn co http://svn.boost.org/svn/boost/tags/release/$BOOST_BRANCH boost
 	fi
 
+    doneSection
+}
+
+updateBoostconfig()
+{
 	#svn st $BOOST_SRC/tools/build/v2/user-config.jam | grep '^M'
 	#if [ $? != 0 ]
 	#then
     #    cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
-
+    
     cat > ~/user-config.jam <<EOF
 using clang : ToT #Use as "b2 --toolset=clang-ToT" 
    : $LLVMROOT/bin/clang++ -std=c++11 -stdlib=libc++
-   : <striper> <linkflags>-L$LIBCXXROOT/lib
+   : <striper>
+   <compileflags>"-arch i386 -arch x86_64 -I$LIBCXXROOT/include"
+   <linkflags>"-arch i386 -arch x86_64 -headerpad_max_install_names -L$LIBCXXROOT/lib"
    ;
 using clang : xcode #Use as "b2 --toolset=clang-xcode" 
    : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++11 -stdlib=libc++
    : <striper> 
+   <compileflags>"-arch i386 -arch x86_64"
+   <linkflags>"-arch i386 -arch x86_64 -headerpad_max_install_names"
+   ;
+using darwin : fsfgcc #Use as "b2 --toolset=darwin-fsfgcc" 
+   : /Users/abigagli/GCC-CURRENT/bin/g++ -std=c++11
+   : <striper>
+   <compileflags>"-D_GLIBCXX_USE_NANOSLEEP -D_GLIBCXX_USE_SCHED_YIELD"
+   <linkflags>"-headerpad_max_install_names"
+   ;
+using darwin : ${OSX_SDKVERSION}~macosx #Use as "b2 --toolset=darwin-${OSX_SDKVERSION}~macosx" 
+   : $XCODE_ROOT/usr/bin/g++ 
+   : <striper>
+   <compileflags>"-arch i386 -arch x86_64"
+   <linkflags>"-arch i386 -arch x86_64 -headerpad_max_install_names"
    ;
 using darwin : ${IPHONE_SDKVERSION}~iphone
-   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/$COMPILER -arch armv6 -arch armv7 -arch armv7s -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
+   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -arch armv6 -arch armv7 -arch armv7s -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
    : <striper> <root>$XCODE_ROOT/Platforms/iPhoneOS.platform/Developer
    : <architecture>arm <target-os>iphone
    ;
 using darwin : ${IPHONE_SDKVERSION}~iphonesim
-   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/$COMPILER -arch i386 -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
+   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -arch i386 -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
    : <striper> <root>$XCODE_ROOT/Platforms/iPhoneSimulator.platform/Developer
    : <architecture>x86 <target-os>iphone
    ;
@@ -158,36 +192,47 @@ bootstrapBoost()
 
 #===============================================================================
 
+buildBoostForOSX()
+{
+    cd $BOOST_SRC
+
+    # OSX dylibs: build and stage only
+    # NOTE: We _stage_ into OSXPREFIXDIR/... (the install root location) instead of _installing_ there
+    # so as to avoid an additional copy of header files. 
+    # (which will be copied by the following install for OSX static libs
+	./b2 -j16 --build-dir=../osx-build --stagedir=$OSXPREFIXDIR/${OSX_TOOLSET}/shared toolset=${OSX_TOOLSET} link=shared threading=multi stage 
+    doneSection
+
+    # OSX static libs: build and install. This will copy the header files too
+	./b2 -j16 --build-dir=../osx-build --stagedir=../osx-build/stage --prefix=$OSXPREFIXDIR --libdir=$OSXPREFIXDIR/${OSX_TOOLSET}/static/lib toolset=${OSX_TOOLSET} link=static threading=multi stage install
+
+    doneSection
+}
+
 buildBoostForiOSAndOSX()
 {
     cd $BOOST_SRC
 
     # add --debug-configuration to check used configuration
+    # add --debug-building to see actual compile/link flags passed in
+    # add -n for a dry-run
+    
     # iOS static libs: build and stage only
-    ./b2 -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static stage
+    ./b2 -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage toolset=darwin-${IPHONE_SDKVERSION}~iphone architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static stage
     doneSection
 
     # iOS-simulator static libs: build and stage only
-    ./b2 -j16 --build-dir=../iphonesim-build --stagedir=../iphonesim-build/stage toolset=darwin architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static stage
+    ./b2 -j16 --build-dir=../iphonesim-build --stagedir=../iphonesim-build/stage toolset=darwin-${IPHONE_SDKVERSION}~iphonesim architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static stage
 	doneSection
 
-    # OSX dylibs: build and stage only
-    # NOTE: We _stage_ into OSXPREFIXDIR (the install location) instead of _installing_ there
-    # so as to avoid an additional copy of header files. 
-    # (which will be copied by the following install for OSX static libs
-	./b2 -j16 --build-dir=../osx-build --stagedir=$OSXPREFIXDIR/dynamic toolset=clang-xcode cxxflags="-arch i386 -arch x86_64" linkflags="-arch i386 -arch x86_64 -headerpad_max_install_names" link=shared threading=multi stage 
-    doneSection
-
-    # OSX static libs: build and install. This will copy the header files too
-	./b2 -j16 --build-dir=../osx-build --stagedir=../osx-build/stage --prefix=$OSXPREFIXDIR toolset=clang-xcode cxxflags="-arch i386 -arch x86_64" linkflags="-arch i386 -arch x86_64 -headerpad_max_install_names" link=static threading=multi stage install
-    doneSection
+    buildBoostForOSX
 }
 
 #===============================================================================
 
 setDylibInstallName()
 {
-    for file in $OSXPREFIXDIR/dynamic/lib/libboost_*.dylib; do
+    for file in $OSXPREFIXDIR/${OSX_TOOLSET}/shared/lib/libboost_*.dylib; do
         curinstallname=$(otool -D $file | tail -1) 
 
         if [[ ! "$curinstallname" == @* ]]; then
@@ -223,10 +268,12 @@ scrunchAllLibsTogetherInOneLibPerPlatform()
 {
 	cd $SRCDIR
 
-    mkdir -p $IOSBUILDDIR/armv6/obj
-    mkdir -p $IOSBUILDDIR/armv7/obj
-    mkdir -p $IOSBUILDDIR/armv7s/obj
-    mkdir -p $IOSBUILDDIR/i386/obj
+    if [[ $BUILD_ALL_FROM_SCRATCH -eq 1 ]]; then
+        mkdir -p $IOSBUILDDIR/armv6/obj
+        mkdir -p $IOSBUILDDIR/armv7/obj
+        mkdir -p $IOSBUILDDIR/armv7s/obj
+        mkdir -p $IOSBUILDDIR/i386/obj
+    fi
 
     mkdir -p $OSXBUILDDIR/i386/obj
     mkdir -p $OSXBUILDDIR/x86_64/obj
@@ -238,48 +285,67 @@ scrunchAllLibsTogetherInOneLibPerPlatform()
     #for NAME in $BOOST_LIBS; do
         ALL_LIBS="$ALL_LIBS $NAME"
 
-        $ARM_DEV_DIR/lipo "iphone-build/stage/lib/$NAME" -thin armv6 -o $IOSBUILDDIR/armv6/$NAME
-        $ARM_DEV_DIR/lipo "iphone-build/stage/lib/$NAME" -thin armv7 -o $IOSBUILDDIR/armv7/$NAME
-        $ARM_DEV_DIR/lipo "iphone-build/stage/lib/$NAME" -thin armv7s -o $IOSBUILDDIR/armv7s/$NAME
+        if [[ $BUILD_ALL_FROM_SCRATCH -eq 1 ]]; then
+            #iphone libs are fat (armv6, armv7, armv...), so we lipo-thin-ize each lib
+            $ARM_DEV_DIR/lipo "iphone-build/stage/lib/$NAME" -thin armv6 -o $IOSBUILDDIR/armv6/$NAME
+            $ARM_DEV_DIR/lipo "iphone-build/stage/lib/$NAME" -thin armv7 -o $IOSBUILDDIR/armv7/$NAME
+            $ARM_DEV_DIR/lipo "iphone-build/stage/lib/$NAME" -thin armv7s -o $IOSBUILDDIR/armv7s/$NAME
+            #iphonesim libs are i386 only, so just copy them instead of lipo-thinize..
+            cp "iphonesim-build/stage/lib/$NAME" $IOSBUILDDIR/i386/ 
+        fi
 
-        cp "iphonesim-build/stage/lib/$NAME" $IOSBUILDDIR/i386/
-
-        $ARM_DEV_DIR/lipo "osx-build/stage/lib/$NAME" -thin i386 -o $OSXBUILDDIR/i386/$NAME
-        $ARM_DEV_DIR/lipo "osx-build/stage/lib/$NAME" -thin x86_64 -o $OSXBUILDDIR/x86_64/$NAME
+        if $ARM_DEV_DIR/lipo "osx-build/stage/lib/$NAME" -info | grep -c 'Non-fat' > /dev/null; then
+            #when building with fsfgcc, osx libs are not fat so we assume there's only x86_64 and just copy
+            #them because lipo -thin fails if source file is not fat
+            cp "osx-build/stage/lib/$NAME" $OSXBUILDDIR/x86_64/$NAME
+        else
+            osx_fatlibs=1
+            #if compiled with clang or xcode's gcc are fat and must be treated as iphone's ones
+            $ARM_DEV_DIR/lipo "osx-build/stage/lib/$NAME" -thin i386 -o $OSXBUILDDIR/i386/$NAME
+            $ARM_DEV_DIR/lipo "osx-build/stage/lib/$NAME" -thin x86_64 -o $OSXBUILDDIR/x86_64/$NAME
+        fi
     done
 
     echo "Decomposing each architecture's .a files"
     for NAME in $ALL_LIBS; do
         echo Decomposing $NAME...
-        (cd $IOSBUILDDIR/armv6/obj; ar -x ../$NAME );
-        (cd $IOSBUILDDIR/armv7/obj; ar -x ../$NAME );
-        (cd $IOSBUILDDIR/armv7s/obj; ar -x ../$NAME );
-        (cd $IOSBUILDDIR/i386/obj; ar -x ../$NAME );
+        if [[ $BUILD_ALL_FROM_SCRATCH -eq 1 ]]; then
+            (cd $IOSBUILDDIR/armv6/obj; ar -x ../$NAME );
+            (cd $IOSBUILDDIR/armv7/obj; ar -x ../$NAME );
+            (cd $IOSBUILDDIR/armv7s/obj; ar -x ../$NAME );
+            (cd $IOSBUILDDIR/i386/obj; ar -x ../$NAME );
+        fi
 
-        (cd $OSXBUILDDIR/i386/obj; ar -x ../$NAME );
+        if [[ $osx_fatlibs -eq 1 ]];then
+            (cd $OSXBUILDDIR/i386/obj; ar -x ../$NAME );
+        fi
         (cd $OSXBUILDDIR/x86_64/obj; ar -x ../$NAME );
     done
 
     echo "Linking each architecture into an uberlib ($ALL_LIBS => libboost_all.a )"
-    rm $IOSBUILDDIR/*/libboost_all.a
-    echo ...armv6
-    (cd $IOSBUILDDIR/armv6; $ARM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
-    echo ...armv7
-    (cd $IOSBUILDDIR/armv7; $ARM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
-    echo ...armv7s
-    (cd $IOSBUILDDIR/armv7s; $ARM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
-    echo ...i386
-    (cd $IOSBUILDDIR/i386;  $SIM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
+    if [[ $BUILD_ALL_FROM_SCRATCH -eq 1 ]]; then
+        rm $IOSBUILDDIR/*/libboost_all.a
+        echo ...armv6
+        (cd $IOSBUILDDIR/armv6; $ARM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
+        echo ...armv7
+        (cd $IOSBUILDDIR/armv7; $ARM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
+        echo ...armv7s
+        (cd $IOSBUILDDIR/armv7s; $ARM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
+        echo ...i386
+        (cd $IOSBUILDDIR/i386;  $SIM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
+    fi
 
     rm $OSXBUILDDIR/*/libboost_all.a
-    echo ...osx-i386
-    (cd $OSXBUILDDIR/i386;  $SIM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
+    if [[ $osx_fatlibs -eq 1 ]];then
+        echo ...osx-i386
+        (cd $OSXBUILDDIR/i386;  $SIM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
+    fi
 
     echo ...x86_64
     (cd $OSXBUILDDIR/x86_64;  $SIM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
 
-    echo "Creating universal osx uberlib into $OSXPREFIXDIR/lib/libboost_all.a"
-    $ARM_DEV_DIR/lipo -create $OSXBUILDDIR/*/libboost_all.a -o "$OSXPREFIXDIR/lib/libboost_all.a" || abort "Lipo failed"
+    echo "Creating universal osx static uberlib into $OSXPREFIXDIR/${OSX_TOOLSET}/static/lib/libboost_all.a"
+    $ARM_DEV_DIR/lipo -create $OSXBUILDDIR/*/libboost_all.a -o "$OSXPREFIXDIR/${OSX_TOOLSET}/static/lib/libboost_all.a" || abort "Lipo failed"
 }
 
 #===============================================================================
@@ -318,6 +384,9 @@ buildFramework()
 
     FRAMEWORK_INSTALL_NAME=$FRAMEWORK_BUNDLE/Versions/$FRAMEWORK_VERSION/$FRAMEWORK_NAME
 
+    #NOTE: for OSX this step has already been done at the very end of scrunchAllLibsTogetherInOneLibPerPlatform
+    #so we could simply copy-rename that one into the frameworks, but this function is called also for building the iOS 
+    #framework
     echo "Lipoing library into $FRAMEWORK_INSTALL_NAME..."
     $ARM_DEV_DIR/lipo -create $BUILDDIR/*/libboost_all.a -o "$FRAMEWORK_INSTALL_NAME" || abort "Lipo $1 failed"
 
@@ -331,6 +400,7 @@ buildFramework()
     pushd $FRAMEWORK_BUNDLE/Headers
     ln -s . boost
     popd
+
 
     echo "Framework: Creating plist..."
     cat > $FRAMEWORK_BUNDLE/Resources/Info.plist <<EOF
@@ -364,9 +434,6 @@ EOF
 
 mkdir -p $IOSBUILDDIR
 
-cleanEverythingReadyToStart
-updateBoost
-
 BOOST_VERSION=`svn info $BOOST_SRC | grep URL | sed -e 's/^.*\/Boost_\([^\/]*\)/\1/'`
 echo "BOOST_VERSION:     $BOOST_VERSION"
 echo "BOOST_LIBS:        $BOOST_LIBS"
@@ -379,16 +446,38 @@ echo "IOSFRAMEWORKDIR:   $IOSFRAMEWORKDIR"
 echo "OSXFRAMEWORKDIR:   $OSXFRAMEWORKDIR"
 echo "IPHONE_SDKVERSION: $IPHONE_SDKVERSION"
 echo "XCODE_ROOT:        $XCODE_ROOT"
-echo "COMPILER:          $COMPILER"
+echo "OSX_TOOLSET:       $OSX_TOOLSET"
 echo
 
-inventMissingHeaders
-bootstrapBoost
-buildBoostForiOSAndOSX
-setDylibInstallName
-scrunchAllLibsTogetherInOneLibPerPlatform
-buildFramework $IOSFRAMEWORKDIR $IOSBUILDDIR
-buildFramework $OSXFRAMEWORKDIR $OSXBUILDDIR
+if [[ $BUILD_ALL_FROM_SCRATCH -eq 1 ]]; then
+    echo "*************** REBUILDING ALL FROM SCRATCH **************"
+    echo
+    cleanEverythingReadyToStart
+    updateBoost
+    updateBoostconfig
+    inventMissingHeaders
+    bootstrapBoost
+    buildBoostForiOSAndOSX
+    setDylibInstallName
+    scrunchAllLibsTogetherInOneLibPerPlatform
+    buildFramework $IOSFRAMEWORKDIR $IOSBUILDDIR
+    buildFramework $OSXFRAMEWORKDIR $OSXBUILDDIR
+else
+    echo "------------ BUILDING OSX ONLY WITH $OSX_TOOLSET -------------"
+    cleanOSXRelated
+    buildBoostForOSX
+    setDylibInstallName
+
+    scrunchAllLibsTogetherInOneLibPerPlatform
+
+    #Build the framework only when using clang-xcode as frameworks
+    #will only be used from xcode projects, which will be built with the
+    #same clang-xcode tools
+    if [ "$OSX_TOOLSET" = "clang-xcode" ]; then
+        buildFramework $OSXFRAMEWORKDIR $OSXBUILDDIR
+    fi
+fi
+
 
 echo "Completed successfully"
 
