@@ -518,6 +518,7 @@ if [[ $BUILD_ALL_FROM_SCRATCH -eq 1 ]]; then
     echo
     cleanEverythingReadyToStart
     updateBoost
+    patchBuildOflibboost_context
     updateBoostconfig
     inventMissingHeaders
     bootstrapBoost
