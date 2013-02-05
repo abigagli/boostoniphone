@@ -231,7 +231,7 @@ buildBoostForOSX()
         ./b2 --with-context -j16 --build-dir=../osx-build --stagedir=/tmp/libboost_context/64/shared toolset=clang-xcode64 address-model=64 link=shared threading=multi stage
 
         #Then lipoficate them 
-        lipo  /tmp/libboost_context/32/shared/lib/libboost_context.dylib /tmp/libboost_context/64/shared/lib/libboost_context.dylib -create -output $OSXPREFIXDIR/${OSX_TOOLSET}/shared/lib/libboost_context.dylib 
+        $ARM_DEV_DIR/lipo /tmp/libboost_context/32/shared/lib/libboost_context.dylib /tmp/libboost_context/64/shared/lib/libboost_context.dylib -create -output $OSXPREFIXDIR/${OSX_TOOLSET}/shared/lib/libboost_context.dylib 
 
 
         #First build the 32 and 64 bit static libs
@@ -239,7 +239,7 @@ buildBoostForOSX()
         ./b2 --with-context -j16 --build-dir=../osx-build --stagedir=/tmp/libboost_context/64/static toolset=clang-xcode64 address-model=64 link=static threading=multi stage
 
         #Then lipoficate them 
-        lipo  /tmp/libboost_context/32/static/lib/libboost_context.a /tmp/libboost_context/64/static/lib/libboost_context.a -create -output ../osx-build/stage/lib/libboost_context.a 
+        $ARM_DEV_DIR/lipo /tmp/libboost_context/32/static/lib/libboost_context.a /tmp/libboost_context/64/static/lib/libboost_context.a -create -output ../osx-build/stage/lib/libboost_context.a 
 
         #And for static lib also simulate the install phase with a simple copy
         cp -p ../osx-build/stage/lib/libboost_context.a $OSXPREFIXDIR/${OSX_TOOLSET}/static/lib/libboost_context.a  
