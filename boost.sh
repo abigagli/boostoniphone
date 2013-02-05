@@ -120,6 +120,15 @@ updateBoost()
     doneSection
 }
 
+patchBuildOflibboost_context()
+{
+    cd $BOOST_SRC
+    svn revert libs/context/build/Jamfile.v2
+    patch -p0 -l -i ../libboost_context.patch
+    doneSection
+}
+
+
 updateBoostconfig()
 {
 	#svn st $BOOST_SRC/tools/build/v2/user-config.jam | grep '^M'
@@ -140,6 +149,20 @@ using clang : xcode #Use as "b2 --toolset=clang-xcode"
    <compileflags>"-arch i386 -arch x86_64"
    <linkflags>"-arch i386 -arch x86_64 -headerpad_max_install_names"
    ;
+using clang : xcode32 #Use as "b2 --toolset=clang-xcode32 address-model=32". Needed for libboost_context
+   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++11 -stdlib=libc++
+   : <striper> 
+   <compileflags>"-arch i386"
+   <linkflags>"-arch i386 -headerpad_max_install_names"
+   ;
+
+using clang : xcode64 #Use as "b2 --toolset=clang-xcode64 address-model=64". Needed for libboost_context
+   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++11 -stdlib=libc++
+   : <striper> 
+   <compileflags>"-arch x86_64"
+   <linkflags>"-arch x86_64 -headerpad_max_install_names"
+   ;
+
 using darwin : fsfgcc #Use as "b2 --toolset=darwin-fsfgcc" 
    : /Users/abigagli/GCC-CURRENT/bin/g++ -std=c++11
    : <striper>
@@ -196,11 +219,37 @@ buildBoostForOSX()
 {
     cd $BOOST_SRC
 
+    #NOTE: libboost_context build for OSX with clang needs special treatment....
+    if [[ $OSX_TOOLSET=="clang-xcode" ]]; then
+
+        #First build the 32 and 64 bit dylibs
+        ./b2 --with-context -j16 --build-dir=../osx-build --stagedir=/tmp/libboost_context/32/shared toolset=clang-xcode32 address-model=32 link=shared threading=multi stage
+        ./b2 --with-context -j16 --build-dir=../osx-build --stagedir=/tmp/libboost_context/64/shared toolset=clang-xcode64 address-model=64 link=shared threading=multi stage
+
+        #Then lipoficate them 
+        lipo  /tmp/libboost_context/32/shared/lib/libboost_context.dylib /tmp/libboost_context/64/shared/lib/libboost_context.dylib -create -output $OSXPREFIXDIR/${OSX_TOOLSET}/shared/lib/libboost_context.dylib 
+
+
+        #First build the 32 and 64 bit static libs
+        ./b2 --with-context -j16 --build-dir=../osx-build --stagedir=/tmp/libboost_context/32/static toolset=clang-xcode32 address-model=32 link=static threading=multi stage
+        ./b2 --with-context -j16 --build-dir=../osx-build --stagedir=/tmp/libboost_context/64/static toolset=clang-xcode64 address-model=64 link=static threading=multi stage
+
+        #Then lipoficate them 
+        lipo  /tmp/libboost_context/32/static/lib/libboost_context.a /tmp/libboost_context/64/static/lib/libboost_context.a -create -output ../osx-build/stage/lib/libboost_context.a 
+
+        #And for static lib also simulate the install phase with a simple copy
+        cp -p ../osx-build/stage/lib/libboost_context.a $OSXPREFIXDIR/${OSX_TOOLSET}/static/lib/libboost_context.a  
+    else
+        ./b2 --with-context -j16 --build-dir=../osx-build --stagedir=$OSXPREFIXDIR/${OSX_TOOLSET}/shared toolset=${OSX_TOOLSET} link=shared threading=multi stage
+        ./b2 --with-context -j16 --build-dir=../osx-build --stagedir=../osx-build/stage --prefix=$OSXPREFIXDIR --libdir=$OSXPREFIXDIR/${OSX_TOOLSET}/static/lib toolset=${OSX_TOOLSET} link=static threading=multi stage install
+    fi
+
+
     # OSX dylibs: build and stage only
     # NOTE: We _stage_ into OSXPREFIXDIR/... (the install root location) instead of _installing_ there
     # so as to avoid an additional copy of header files. 
     # (which will be copied by the following install for OSX static libs
-	./b2 -j16 --build-dir=../osx-build --stagedir=$OSXPREFIXDIR/${OSX_TOOLSET}/shared toolset=${OSX_TOOLSET} link=shared threading=multi stage 
+	./b2 -j16 --build-dir=../osx-build --stagedir=$OSXPREFIXDIR/${OSX_TOOLSET}/shared toolset=${OSX_TOOLSET} link=shared threading=multi stage
     doneSection
 
     # OSX static libs: build and install. This will copy the header files too
@@ -217,12 +266,19 @@ buildBoostForiOSAndOSX()
     # add --debug-building to see actual compile/link flags passed in
     # add -n for a dry-run
     
-    # iOS static libs: build and stage only
+    # iOS static libs: build and stage only.
     ./b2 -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage toolset=darwin-${IPHONE_SDKVERSION}~iphone architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static stage
+    
+    #NOTE:  libboost_context must be built explicitly because it's not been bootstrapped
+    ./b2 --with-context -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage toolset=darwin-${IPHONE_SDKVERSION}~iphone architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static stage
     doneSection
+
 
     # iOS-simulator static libs: build and stage only
     ./b2 -j16 --build-dir=../iphonesim-build --stagedir=../iphonesim-build/stage toolset=darwin-${IPHONE_SDKVERSION}~iphonesim architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static stage
+
+    #NOTE:  libboost_context must be built explicitly because it's not been bootstrapped
+    ./b2 --with-context -j16 --build-dir=../iphonesim-build --stagedir=../iphonesim-build/stage toolset=darwin-${IPHONE_SDKVERSION}~iphonesim architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static stage
 	doneSection
 
     buildBoostForOSX
