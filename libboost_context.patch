@@ -1,0 +1,64 @@
+Index: libs/context/build/Jamfile.v2
+===================================================================
+--- libs/context/build/Jamfile.v2	(revision 82748)
++++ libs/context/build/Jamfile.v2	(working copy)
+@@ -262,8 +262,33 @@
+      <toolset>darwin
+    ;
+ 
++#PATCHED to build for iphonesim
+ alias asm_context_sources
+    : asm/make_i386_sysv_macho_gas.S
++     asm/jump_i386_sysv_macho_gas.S
++   : <address-model>32
++     <architecture>x86
++     <binary-format>mach-o
++     <target-os>iphone
++     <toolset>darwin
++   ;
++################################
++
++#PATCHED to build for darwin with clang-xcode32 address-model=32
++alias asm_context_sources
++   : asm/make_i386_sysv_macho_gas.S
++     asm/jump_i386_sysv_macho_gas.S
++   : <address-model>32
++     <architecture>x86
++     <binary-format>mach-o
++     <target-os>darwin
++     <toolset>clang
++   ;
++################################
++
++
++alias asm_context_sources
++   : asm/make_i386_sysv_macho_gas.S
+      asm/jumjumpysv_macho_gas.S
+    : <address-model>32
+      <architecture>x86
+@@ -349,6 +374,7 @@
+      <binary-format>elf
+    ;
+ 
++#PATCHED to build for darwin with clang-xcode64 address-model=64
+ alias asm_context_sources
+    : asm/make_x86_64_sysv_macho_gas.S
+      asm/jump_x86_64_sysv_macho_gas.S
+@@ -356,6 +382,17 @@
+      <architecture>x86
+      <binary-format>mach-o
+      <target-os>darwin
++     <toolset>clang
++   ;
++################################
++
++alias asm_context_sources
++   : asm/make_x86_64_sysv_macho_gas.S
++     asm/jump_x86_64_sysv_macho_gas.S
++   : <address-model>64
++     <architecture>x86
++     <binary-format>mach-o
++     <target-os>darwin
+      <toolset>darwin
+    ;
+ 
