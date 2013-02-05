@@ -224,7 +224,7 @@ buildBoostForOSX()
     cd $BOOST_SRC
 
     #NOTE: libboost_context build for OSX with clang needs special treatment....
-    if [[ $OSX_TOOLSET=="clang-xcode" ]]; then
+    if [ "$OSX_TOOLSET" = "clang-xcode" ]; then
 
         mkdir -p $OSXPREFIXDIR/${OSX_TOOLSET}/shared/lib 
         mkdir -p $OSXPREFIXDIR/${OSX_TOOLSET}/static/lib 
