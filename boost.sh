@@ -111,6 +111,10 @@ updateBoost()
 	then
 		# Remove everything not under version control...
 		svn st --no-ignore $BOOST_SRC | egrep '^[?I]' | sed 's:.......::' | xargs rm -rf 
+
+        # Just to be sure we don't have conflicts when updating...
+        svn revert libs/context/build/Jamfile.v2
+
 		svn update boost
 	else
 		BOOST_BRANCH=`svn ls http://svn.boost.org/svn/boost/tags/release/ | sort | tail -1`
