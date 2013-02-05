@@ -113,7 +113,7 @@ updateBoost()
 		svn st --no-ignore $BOOST_SRC | egrep '^[?I]' | sed 's:.......::' | xargs rm -rf 
 
         # Just to be sure we don't have conflicts when updating...
-        svn revert libs/context/build/Jamfile.v2
+        svn revert boost/libs/context/build/Jamfile.v2
 
 		svn update boost
 	else
