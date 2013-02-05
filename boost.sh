@@ -226,6 +226,10 @@ buildBoostForOSX()
     #NOTE: libboost_context build for OSX with clang needs special treatment....
     if [[ $OSX_TOOLSET=="clang-xcode" ]]; then
 
+        mkdir -p $OSXPREFIXDIR/${OSX_TOOLSET}/shared/lib 
+        mkdir -p $OSXPREFIXDIR/${OSX_TOOLSET}/static/lib 
+        mkdir -p ../osx-build/stage/lib
+
         #First build the 32 and 64 bit dylibs
         ./b2 --with-context -j16 --build-dir=../osx-build --stagedir=/tmp/libboost_context/32/shared toolset=clang-xcode32 address-model=32 link=shared threading=multi stage
         ./b2 --with-context -j16 --build-dir=../osx-build --stagedir=/tmp/libboost_context/64/shared toolset=clang-xcode64 address-model=64 link=shared threading=multi stage
