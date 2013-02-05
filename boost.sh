@@ -18,7 +18,7 @@
 # same directory as this script, and run "./boost.sh". Grab a cuppa. And voila.
 #===============================================================================
 
-: ${BOOST_LIBS:="thread date_time serialization iostreams signals filesystem regex system python test context timer chrono program_options"}
+: ${BOOST_LIBS:="thread date_time serialization iostreams signals filesystem regex system python test timer chrono program_options wave"}
 #: ${BOOST_LIBS:="thread signals filesystem regex system date_time"}
 : ${IPHONE_SDKVERSION:=6.1}
 : ${OSX_SDKVERSION:=10.8}
