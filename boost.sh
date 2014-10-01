@@ -18,10 +18,10 @@
 # same directory as this script, and run "./boost.sh". Grab a cuppa. And voila.
 #===============================================================================
 
-: ${BOOST_LIBS:="thread date_time serialization iostreams signals filesystem regex system python test timer chrono program_options wave random"}
+: ${BOOST_LIBS:="thread date_time serialization iostreams signals filesystem regex system python test timer chrono program_options wave random locale"}
 #: ${BOOST_LIBS:="thread signals filesystem regex system date_time"}
-: ${IPHONE_SDKVERSION:=6.1}
-: ${OSX_SDKVERSION:=10.8}
+: ${IPHONE_SDKVERSION:=8.0}
+: ${OSX_SDKVERSION:=10.9}
 : ${XCODE_ROOT:=`xcode-select -print-path`}
 : ${EXTRA_CPPFLAGS:="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS -std=c++11 -stdlib=libc++"}
 
@@ -53,11 +53,8 @@ BOOST_SRC=$SRCDIR/boost
 #===============================================================================
 
 ARM_DEV_DIR=$XCODE_ROOT/Platforms/iPhoneOS.platform/Developer/usr/bin/
-SIM_DEV_DIR=$XCODE_ROOT/Platforms/iPhoneSimulator.platform/Developer/usr/bin/
-
-#ARM_COMBINED_LIB=$IOSBUILDDIR/lib_boost_arm.a
-#SIM_COMBINED_LIB=$IOSBUILDDIR/lib_boost_x86.a
-
+SIM_DEV_DIR=/usr/bin/
+#SIM_DEV_DIR=$XCODE_ROOT/Platforms/iPhoneSimulator.platform/Developer/usr/bin/
 #===============================================================================
 
 
@@ -168,7 +165,7 @@ using clang : xcode64 #Use as "b2 --toolset=clang-xcode64 address-model=64". Nee
    ;
 
 using darwin : fsfgcc #Use as "b2 --toolset=darwin-fsfgcc" 
-   : /Users/abigagli/GCC-CURRENT/bin/g++ -std=c++11
+   : /Users/abigagli/GCC-CURRENT/bin/gnu-g++ -std=c++11
    : <striper>
    <compileflags>"-D_GLIBCXX_USE_NANOSLEEP -D_GLIBCXX_USE_SCHED_YIELD"
    <linkflags>"-headerpad_max_install_names"
