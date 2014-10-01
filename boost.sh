@@ -18,6 +18,7 @@
 # same directory as this script, and run "./boost.sh". Grab a cuppa. And voila.
 #===============================================================================
 
+BOOST_VERSION="1.56.0"
 : ${BOOST_LIBS:="thread date_time serialization iostreams signals filesystem regex system python test timer chrono program_options wave random locale"}
 #: ${BOOST_LIBS:="thread signals filesystem regex system date_time"}
 : ${IPHONE_SDKVERSION:=8.0}
@@ -104,28 +105,27 @@ updateBoost()
 {
     echo Updating boost into $BOOST_SRC...
 
-	if [ -d $BOOST_SRC ]
+	if [ ! -d $BOOST_SRC ]
 	then
-		# Remove everything not under version control...
-		svn st --no-ignore $BOOST_SRC | egrep '^[?I]' | sed 's:.......::' | xargs rm -rf 
+        git clone --recursive https://github.com/boostorg/boost.git boost
+    else
+        cd $BOOST_SRC
+        git clean -f
+        git checkout master
+        git pull
+        git submodule update
+    fi
 
-        # Just to be sure we don't have conflicts when updating...
-        svn revert boost/libs/context/build/Jamfile.v2
-
-		svn update boost
-	else
-		BOOST_BRANCH=`svn ls http://svn.boost.org/svn/boost/tags/release/ | sort | tail -1`
-		svn co http://svn.boost.org/svn/boost/tags/release/$BOOST_BRANCH boost
-	fi
-
+    cd $BOOST_SRC
+    git checkout boost-$BOOST_VERSION
     doneSection
 }
 
 patchBuildOflibboost_context()
 {
     cd $BOOST_SRC
-    svn revert libs/context/build/Jamfile.v2
-    patch -p0 -l -i ../libboost_context.patch
+    #svn revert libs/context/build/Jamfile.v2
+    #patch -p0 -l -i ../libboost_context.patch
     doneSection
 }
 
@@ -211,6 +211,7 @@ bootstrapBoost()
     BOOST_LIBS_COMMA=$(echo $BOOST_LIBS | sed -e "s/ /,/g")
     echo "Bootstrapping (with libs $BOOST_LIBS_COMMA)"
     ./bootstrap.sh --with-libraries=$BOOST_LIBS_COMMA
+    ./b2 headers
     doneSection
 }
 
@@ -495,7 +496,6 @@ EOF
 
 mkdir -p $IOSBUILDDIR
 
-BOOST_VERSION=`svn info $BOOST_SRC | grep URL | sed -e 's/^.*\/Boost_\([^\/]*\)/\1/'`
 echo "BOOST_VERSION:     $BOOST_VERSION"
 echo "BOOST_LIBS:        $BOOST_LIBS"
 echo "BOOST_SRC:         $BOOST_SRC"
@@ -515,7 +515,7 @@ if [[ $BUILD_ALL_FROM_SCRATCH -eq 1 ]]; then
     echo
     cleanEverythingReadyToStart
     updateBoost
-    patchBuildOflibboost_context
+    #patchBuildOflibboost_context
     updateBoostconfig
     inventMissingHeaders
     bootstrapBoost
