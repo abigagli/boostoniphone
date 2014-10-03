@@ -221,13 +221,12 @@ buildBoostForOSX()
 {
     cd $BOOST_SRC
 
+    mkdir -p $OSXPREFIXDIR/${OSX_TOOLSET}/shared/lib
+    mkdir -p $OSXPREFIXDIR/${OSX_TOOLSET}/static/lib
+    mkdir -p ../osx-build/stage/lib
+
     #NOTE: libboost_context build for OSX with clang needs special treatment....
     if [ "$OSX_TOOLSET" = "clang-xcode" ]; then
-
-        mkdir -p $OSXPREFIXDIR/${OSX_TOOLSET}/shared/lib 
-        mkdir -p $OSXPREFIXDIR/${OSX_TOOLSET}/static/lib 
-        mkdir -p ../osx-build/stage/lib
-
         #First build the 32 and 64 bit dylibs
         ./b2 --with-context -j16 --build-dir=../osx-build --stagedir=/tmp/libboost_context/32/shared toolset=clang-xcode32 address-model=32 link=shared threading=multi stage
         ./b2 --with-context -j16 --build-dir=../osx-build --stagedir=/tmp/libboost_context/64/shared toolset=clang-xcode64 address-model=64 link=shared threading=multi stage
@@ -343,28 +342,35 @@ scrunchAllLibsTogetherInOneLibPerPlatform()
     ALL_LIBS=""
 
     echo Splitting all existing fat binaries...
-    for NAME in $(basename iphone-build/stage/lib/*.a); do
+
+    if [[ $BUILD_ALL_FROM_SCRATCH -eq 1 ]]; then
+        STAGEROOT=iphone-build
+    else
+        STAGEROOT=osx-build
+    fi
+
+    for NAME in $(basename $STAGEROOT/stage/lib/*.a); do
     #for NAME in $BOOST_LIBS; do
         ALL_LIBS="$ALL_LIBS $NAME"
 
         if [[ $BUILD_ALL_FROM_SCRATCH -eq 1 ]]; then
             #iphone libs are fat (armv6, armv7, armv...), so we lipo-thin-ize each lib
-            $ARM_DEV_DIR/lipo "iphone-build/stage/lib/$NAME" -thin armv6 -o $IOSBUILDDIR/armv6/$NAME
-            $ARM_DEV_DIR/lipo "iphone-build/stage/lib/$NAME" -thin armv7 -o $IOSBUILDDIR/armv7/$NAME
-            $ARM_DEV_DIR/lipo "iphone-build/stage/lib/$NAME" -thin armv7s -o $IOSBUILDDIR/armv7s/$NAME
+            $ARM_DEV_DIR/lipo "$STAGEROOT/stage/lib/$NAME" -thin armv6 -o $IOSBUILDDIR/armv6/$NAME
+            $ARM_DEV_DIR/lipo "$STAGEROOT/stage/lib/$NAME" -thin armv7 -o $IOSBUILDDIR/armv7/$NAME
+            $ARM_DEV_DIR/lipo "$STAGEROOT/stage/lib/$NAME" -thin armv7s -o $IOSBUILDDIR/armv7s/$NAME
             #iphonesim libs are i386 only, so just copy them instead of lipo-thinize..
             cp "iphonesim-build/stage/lib/$NAME" $IOSBUILDDIR/i386/ 
         fi
 
-        if $ARM_DEV_DIR/lipo "osx-build/stage/lib/$NAME" -info | grep -c 'Non-fat' > /dev/null; then
+        if $ARM_DEV_DIR/lipo "$STAGEROOT/stage/lib/$NAME" -info | grep -c 'Non-fat' > /dev/null; then
             #when building with fsfgcc, osx libs are not fat so we assume there's only x86_64 and just copy
             #them because lipo -thin fails if source file is not fat
-            cp "osx-build/stage/lib/$NAME" $OSXBUILDDIR/x86_64/$NAME
+            cp "$STAGEROOT/stage/lib/$NAME" $OSXBUILDDIR/x86_64/$NAME
         else
             osx_fatlibs=1
             #if compiled with clang or xcode's gcc are fat and must be treated as iphone's ones
-            $ARM_DEV_DIR/lipo "osx-build/stage/lib/$NAME" -thin i386 -o $OSXBUILDDIR/i386/$NAME
-            $ARM_DEV_DIR/lipo "osx-build/stage/lib/$NAME" -thin x86_64 -o $OSXBUILDDIR/x86_64/$NAME
+            $ARM_DEV_DIR/lipo "$STAGEROOT/stage/lib/$NAME" -thin i386 -o $OSXBUILDDIR/i386/$NAME
+            $ARM_DEV_DIR/lipo "$STAGEROOT/stage/lib/$NAME" -thin x86_64 -o $OSXBUILDDIR/x86_64/$NAME
         fi
     done
 
