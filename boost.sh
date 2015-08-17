@@ -18,11 +18,11 @@
 # same directory as this script, and run "./boost.sh". Grab a cuppa. And voila.
 #===============================================================================
 
-BOOST_VERSION="1.56.0"
-: ${BOOST_LIBS:="thread date_time serialization iostreams signals filesystem regex system python test timer chrono program_options wave random locale"}
+BOOST_VERSION="1.59.0"
+: ${BOOST_LIBS:="thread date_time coroutine serialization iostreams signals filesystem regex system python test timer chrono program_options wave random locale"}
 #: ${BOOST_LIBS:="thread signals filesystem regex system date_time"}
-: ${IPHONE_SDKVERSION:=8.0}
-: ${OSX_SDKVERSION:=10.9}
+: ${IPHONE_SDKVERSION:=8.4}
+: ${OSX_SDKVERSION:=10.10}
 : ${XCODE_ROOT:=`xcode-select -print-path`}
 : ${EXTRA_CPPFLAGS:="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS -std=c++11 -stdlib=libc++"}
 
@@ -533,6 +533,7 @@ if [[ $BUILD_ALL_FROM_SCRATCH -eq 1 ]]; then
 else
     echo "------------ BUILDING OSX ONLY WITH $OSX_TOOLSET -------------"
     cleanOSXRelated
+    bootstrapBoost
     buildBoostForOSX
     setDylibInstallName
 
