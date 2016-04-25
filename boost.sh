@@ -18,13 +18,19 @@
 # same directory as this script, and run "./boost.sh". Grab a cuppa. And voila.
 #===============================================================================
 
-BOOST_VERSION="1.59.0"
+BOOST_VERSION="1.60.0"
 : ${BOOST_LIBS:="thread date_time coroutine serialization iostreams signals filesystem regex system python test timer chrono program_options wave random locale"}
 #: ${BOOST_LIBS:="thread signals filesystem regex system date_time"}
-: ${IPHONE_SDKVERSION:=8.4}
-: ${OSX_SDKVERSION:=10.10}
+
+
+#Latest Xcodes seem to have generic non-versioned folder names for iPhoneOS and iPhoneSimulator under Developer/SDKs that we can use without coupling to a specific version
+: ${IPHONE_SDKVERSION:=""}
+
+
+
+: ${OSX_SDKVERSION:=10.11}
 : ${XCODE_ROOT:=`xcode-select -print-path`}
-: ${EXTRA_CPPFLAGS:="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS -std=c++11 -stdlib=libc++"}
+: ${EXTRA_CPPFLAGS:="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS -std=c++14 -stdlib=libc++"}
 
 # The EXTRA_CPPFLAGS definition works around a thread race issue in
 # shared_ptr. I encountered this historically and have not verified that
@@ -48,7 +54,7 @@ BOOST_VERSION="1.59.0"
 : ${OSXFRAMEWORKDIR:=`pwd`/osx/framework}
 
 [ -n "$1" ] || BUILD_ALL_FROM_SCRATCH=1
-OSX_TOOLSET=${1:-"clang-xcode"}
+OSX_TOOLSET=${1:-"clang-xcode"} #The alternative is darwin-fsfgcc
 BOOST_SRC=$SRCDIR/boost
 
 #===============================================================================
@@ -81,9 +87,13 @@ doneSection()
 #===============================================================================
 cleanOSXRelated()
 {
-    echo Cleaning osx-build/stage and $OSXBUILDDIR before we start to build...
+    echo Cleaning osx-build and $OSXBUILDDIR before we start to build...
+	rm -rf osx-build
     rm -rf $OSXBUILDDIR
-	rm -rf osx-build/stage
+# Don't normally remove these 2, as we might invoke the script 2 times in a row to build for clang first and then for gcc
+# and we don't want the second invocation to nuke _everything_ the first one did...
+#    rm -rf $OSXFRAMEWORKDIR
+#    rm -rf $OSXPREFIXDIR
     doneSection
 }
 
@@ -113,7 +123,7 @@ updateBoost()
         git clean -f
         git checkout master
         git pull
-        git submodule update
+        git submodule update --remote --merge
     fi
 
     cd $BOOST_SRC
@@ -138,40 +148,40 @@ updateBoostconfig()
     #    cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
     
     cat > ~/user-config.jam <<EOF
-using clang : ToT #Use as "b2 --toolset=clang-ToT" 
-   : $LLVMROOT/bin/clang++ -std=c++11 -stdlib=libc++
+using clang : ToT #Use as "b2 --toolset=clang-ToT"
+   : $LLVMROOT/bin/tot-clang++ -std=c++14 -stdlib=libc++
    : <striper>
    <compileflags>"-arch i386 -arch x86_64 -I$LIBCXXROOT/include"
    <linkflags>"-arch i386 -arch x86_64 -headerpad_max_install_names -L$LIBCXXROOT/lib"
    ;
-using clang : xcode #Use as "b2 --toolset=clang-xcode" 
-   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++11 -stdlib=libc++
-   : <striper> 
+using clang : xcode #Use as "b2 --toolset=clang-xcode"
+   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++14 -stdlib=libc++
+   : <striper>
    <compileflags>"-arch i386 -arch x86_64"
    <linkflags>"-arch i386 -arch x86_64 -headerpad_max_install_names"
    ;
 using clang : xcode32 #Use as "b2 --toolset=clang-xcode32 address-model=32". Needed for libboost_context
-   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++11 -stdlib=libc++
-   : <striper> 
+   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++14 -stdlib=libc++
+   : <striper>
    <compileflags>"-arch i386"
    <linkflags>"-arch i386 -headerpad_max_install_names"
    ;
 
 using clang : xcode64 #Use as "b2 --toolset=clang-xcode64 address-model=64". Needed for libboost_context
-   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++11 -stdlib=libc++
-   : <striper> 
+   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++14 -stdlib=libc++
+   : <striper>
    <compileflags>"-arch x86_64"
    <linkflags>"-arch x86_64 -headerpad_max_install_names"
    ;
 
-using darwin : fsfgcc #Use as "b2 --toolset=darwin-fsfgcc" 
-   : /Users/abigagli/GCC-CURRENT/bin/gnu-g++ -std=c++11
+using darwin : fsfgcc #Use as "b2 --toolset=darwin-fsfgcc"
+   : /Users/abigagli/GCC-CURRENT/bin/gnu-g++ -std=c++14
    : <striper>
-   <compileflags>"-D_GLIBCXX_USE_NANOSLEEP -D_GLIBCXX_USE_SCHED_YIELD"
+   #<compileflags>"-D_GLIBCXX_USE_NANOSLEEP -D_GLIBCXX_USE_SCHED_YIELD"
    <linkflags>"-headerpad_max_install_names"
    ;
-using darwin : ${OSX_SDKVERSION}~macosx #Use as "b2 --toolset=darwin-${OSX_SDKVERSION}~macosx" 
-   : $XCODE_ROOT/usr/bin/g++ 
+using darwin : ${OSX_SDKVERSION}~macosx #Use as "b2 --toolset=darwin-${OSX_SDKVERSION}~macosx"
+   : $XCODE_ROOT/usr/bin/g++
    : <striper>
    <compileflags>"-arch i386 -arch x86_64"
    <linkflags>"-arch i386 -arch x86_64 -headerpad_max_install_names"
@@ -232,7 +242,7 @@ buildBoostForOSX()
         ./b2 --with-context -j16 --build-dir=../osx-build --stagedir=/tmp/libboost_context/64/shared toolset=clang-xcode64 address-model=64 link=shared threading=multi stage
 
         #Then lipoficate them 
-        $ARM_DEV_DIR/lipo /tmp/libboost_context/32/shared/lib/libboost_context.dylib /tmp/libboost_context/64/shared/lib/libboost_context.dylib -create -output $OSXPREFIXDIR/${OSX_TOOLSET}/shared/lib/libboost_context.dylib 
+        lipo /tmp/libboost_context/32/shared/lib/libboost_context.dylib /tmp/libboost_context/64/shared/lib/libboost_context.dylib -create -output $OSXPREFIXDIR/${OSX_TOOLSET}/shared/lib/libboost_context.dylib 
 
 
         #First build the 32 and 64 bit static libs
@@ -240,7 +250,7 @@ buildBoostForOSX()
         ./b2 --with-context -j16 --build-dir=../osx-build --stagedir=/tmp/libboost_context/64/static toolset=clang-xcode64 address-model=64 link=static threading=multi stage
 
         #Then lipoficate them 
-        $ARM_DEV_DIR/lipo /tmp/libboost_context/32/static/lib/libboost_context.a /tmp/libboost_context/64/static/lib/libboost_context.a -create -output ../osx-build/stage/lib/libboost_context.a 
+        lipo /tmp/libboost_context/32/static/lib/libboost_context.a /tmp/libboost_context/64/static/lib/libboost_context.a -create -output ../osx-build/stage/lib/libboost_context.a 
 
         #And for static lib also simulate the install phase with a simple copy
         cp -p ../osx-build/stage/lib/libboost_context.a $OSXPREFIXDIR/${OSX_TOOLSET}/static/lib/libboost_context.a  
@@ -355,22 +365,22 @@ scrunchAllLibsTogetherInOneLibPerPlatform()
 
         if [[ $BUILD_ALL_FROM_SCRATCH -eq 1 ]]; then
             #iphone libs are fat (armv6, armv7, armv...), so we lipo-thin-ize each lib
-            $ARM_DEV_DIR/lipo "$STAGEROOT/stage/lib/$NAME" -thin armv6 -o $IOSBUILDDIR/armv6/$NAME
-            $ARM_DEV_DIR/lipo "$STAGEROOT/stage/lib/$NAME" -thin armv7 -o $IOSBUILDDIR/armv7/$NAME
-            $ARM_DEV_DIR/lipo "$STAGEROOT/stage/lib/$NAME" -thin armv7s -o $IOSBUILDDIR/armv7s/$NAME
+            lipo "$STAGEROOT/stage/lib/$NAME" -thin armv6 -o $IOSBUILDDIR/armv6/$NAME
+            lipo "$STAGEROOT/stage/lib/$NAME" -thin armv7 -o $IOSBUILDDIR/armv7/$NAME
+            lipo "$STAGEROOT/stage/lib/$NAME" -thin armv7s -o $IOSBUILDDIR/armv7s/$NAME
             #iphonesim libs are i386 only, so just copy them instead of lipo-thinize..
             cp "iphonesim-build/stage/lib/$NAME" $IOSBUILDDIR/i386/ 
         fi
 
-        if $ARM_DEV_DIR/lipo "$STAGEROOT/stage/lib/$NAME" -info | grep -c 'Non-fat' > /dev/null; then
+        if lipo "$STAGEROOT/stage/lib/$NAME" -info | grep -c 'Non-fat' > /dev/null; then
             #when building with fsfgcc, osx libs are not fat so we assume there's only x86_64 and just copy
             #them because lipo -thin fails if source file is not fat
             cp "$STAGEROOT/stage/lib/$NAME" $OSXBUILDDIR/x86_64/$NAME
         else
             osx_fatlibs=1
             #if compiled with clang or xcode's gcc are fat and must be treated as iphone's ones
-            $ARM_DEV_DIR/lipo "$STAGEROOT/stage/lib/$NAME" -thin i386 -o $OSXBUILDDIR/i386/$NAME
-            $ARM_DEV_DIR/lipo "$STAGEROOT/stage/lib/$NAME" -thin x86_64 -o $OSXBUILDDIR/x86_64/$NAME
+            lipo "$STAGEROOT/stage/lib/$NAME" -thin i386 -o $OSXBUILDDIR/i386/$NAME
+            lipo "$STAGEROOT/stage/lib/$NAME" -thin x86_64 -o $OSXBUILDDIR/x86_64/$NAME
         fi
     done
 
@@ -413,7 +423,7 @@ scrunchAllLibsTogetherInOneLibPerPlatform()
     (cd $OSXBUILDDIR/x86_64;  $SIM_DEV_DIR/ar crus libboost_all.a obj/*.o; )
 
     echo "Creating universal osx static uberlib into $OSXPREFIXDIR/${OSX_TOOLSET}/static/lib/libboost_all.a"
-    $ARM_DEV_DIR/lipo -create $OSXBUILDDIR/*/libboost_all.a -o "$OSXPREFIXDIR/${OSX_TOOLSET}/static/lib/libboost_all.a" || abort "Lipo failed"
+    lipo -create $OSXBUILDDIR/*/libboost_all.a -o "$OSXPREFIXDIR/${OSX_TOOLSET}/static/lib/libboost_all.a" || abort "Lipo failed"
 }
 
 #===============================================================================
@@ -456,7 +466,7 @@ buildFramework()
     #so we could simply copy-rename that one into the frameworks, but this function is called also for building the iOS 
     #framework
     echo "Lipoing library into $FRAMEWORK_INSTALL_NAME..."
-    $ARM_DEV_DIR/lipo -create $BUILDDIR/*/libboost_all.a -o "$FRAMEWORK_INSTALL_NAME" || abort "Lipo $1 failed"
+    lipo -create $BUILDDIR/*/libboost_all.a -o "$FRAMEWORK_INSTALL_NAME" || abort "Lipo $1 failed"
 
     echo "Framework: Copying includes..."
     cp -r $OSXPREFIXDIR/include/boost/*  $FRAMEWORK_BUNDLE/Headers/
@@ -533,6 +543,8 @@ if [[ $BUILD_ALL_FROM_SCRATCH -eq 1 ]]; then
 else
     echo "------------ BUILDING OSX ONLY WITH $OSX_TOOLSET -------------"
     cleanOSXRelated
+    #updateBoost
+    updateBoostconfig
     bootstrapBoost
     buildBoostForOSX
     setDylibInstallName
