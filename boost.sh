@@ -18,8 +18,8 @@
 # same directory as this script, and run "./boost.sh". Grab a cuppa. And voila.
 #===============================================================================
 
-BOOST_VERSION="1.60.0"
-: ${BOOST_LIBS:="thread date_time coroutine serialization iostreams signals filesystem regex system python test timer chrono program_options wave random locale"}
+BOOST_VERSION="1.62.0"
+: ${BOOST_LIBS:="thread date_time coroutine serialization iostreams signals filesystem regex system python test timer chrono program_options wave random locale log"}
 #: ${BOOST_LIBS:="thread signals filesystem regex system date_time"}
 
 
@@ -28,9 +28,9 @@ BOOST_VERSION="1.60.0"
 
 
 
-: ${OSX_SDKVERSION:=10.11}
+: ${OSX_SDKVERSION:=10.12}
 : ${XCODE_ROOT:=`xcode-select -print-path`}
-: ${EXTRA_CPPFLAGS:="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS -std=c++14 -stdlib=libc++"}
+: ${EXTRA_CPPFLAGS:="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS -std=c++1y -stdlib=libc++"}
 
 # The EXTRA_CPPFLAGS definition works around a thread race issue in
 # shared_ptr. I encountered this historically and have not verified that
@@ -149,41 +149,41 @@ updateBoostconfig()
     
     cat > ~/user-config.jam <<EOF
 using clang : ToT #Use as "b2 --toolset=clang-ToT"
-   : $LLVMROOT/bin/tot-clang++ -std=c++14 -stdlib=libc++
+   : $LLVMROOT/bin/tot-clang++ -std=c++1y -stdlib=libc++
    : <striper>
-   <compileflags>"-arch i386 -arch x86_64 -I$LIBCXXROOT/include"
+   <compileflags>"-std=c++1y -arch i386 -arch x86_64 -I$LIBCXXROOT/include"
    <linkflags>"-arch i386 -arch x86_64 -headerpad_max_install_names -L$LIBCXXROOT/lib"
    ;
 using clang : xcode #Use as "b2 --toolset=clang-xcode"
-   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++14 -stdlib=libc++
+   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++1y -stdlib=libc++
    : <striper>
-   <compileflags>"-arch i386 -arch x86_64"
+   <compileflags>"-std=c++1y -arch i386 -arch x86_64"
    <linkflags>"-arch i386 -arch x86_64 -headerpad_max_install_names"
    ;
 using clang : xcode32 #Use as "b2 --toolset=clang-xcode32 address-model=32". Needed for libboost_context
-   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++14 -stdlib=libc++
+   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++1y -stdlib=libc++
    : <striper>
-   <compileflags>"-arch i386"
+   <compileflags>"-std=c++1y -arch i386"
    <linkflags>"-arch i386 -headerpad_max_install_names"
    ;
 
 using clang : xcode64 #Use as "b2 --toolset=clang-xcode64 address-model=64". Needed for libboost_context
-   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++14 -stdlib=libc++
+   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++1y -stdlib=libc++
    : <striper>
-   <compileflags>"-arch x86_64"
+   <compileflags>"-std=c++1y -arch x86_64"
    <linkflags>"-arch x86_64 -headerpad_max_install_names"
    ;
 
 using darwin : fsfgcc #Use as "b2 --toolset=darwin-fsfgcc"
-   : /Users/abigagli/GCC-CURRENT/bin/gnu-g++ -std=c++14
+   : /Users/abigagli/GCC-CURRENT/bin/gnu-g++ -std=c++1y
    : <striper>
-   #<compileflags>"-D_GLIBCXX_USE_NANOSLEEP -D_GLIBCXX_USE_SCHED_YIELD"
+   #<compileflags>"-std=c++1y -D_GLIBCXX_USE_NANOSLEEP -D_GLIBCXX_USE_SCHED_YIELD"
    <linkflags>"-headerpad_max_install_names"
    ;
 using darwin : ${OSX_SDKVERSION}~macosx #Use as "b2 --toolset=darwin-${OSX_SDKVERSION}~macosx"
    : $XCODE_ROOT/usr/bin/g++
    : <striper>
-   <compileflags>"-arch i386 -arch x86_64"
+   <compileflags>"-std=c++1y -arch i386 -arch x86_64"
    <linkflags>"-arch i386 -arch x86_64 -headerpad_max_install_names"
    ;
 using darwin : ${IPHONE_SDKVERSION}~iphone
